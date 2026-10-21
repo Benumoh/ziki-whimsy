@@ -67,7 +67,7 @@ import {
   BulkCheckbox,
   BulkSelectionProvider,
 } from "@/components/bulk-selection";
-import { TAGS_PARAM, parseTagFilter, serializeTags, tagTypeIds } from "@/lib/tag-filter";
+import { parseTagFilter, serializeTags, tagTypeIds } from "@/lib/tag-filter";
 import { bugInTenant, currentTenantIdFor, isMissingTenantColumnError } from "@/lib/tenant-context";
 import { activeProjectIdFor } from "@/lib/project-context";
 import { RichText } from "@/components/rich-text";
@@ -76,13 +76,14 @@ import { cookies } from "next/headers";
 import { GettingStarted } from "@/components/getting-started";
 import { GETTING_STARTED_COOKIE, gettingStartedFor, parseDismissed, type GettingStartedStep } from "@/lib/onboarding";
 import {
-  PLATFORM_NONE,
   PLATFORM_PARAM,
   parsePlatformFilter,
   platformChoices,
   platformFilterWhere,
 } from "@/lib/platform-filter";
 import { PlatformTabs, type PlatformTab } from "@/components/platform-tabs";
+import { LoadError } from "@/components/load-error";
+import { logLoadFailure } from "@/lib/load-error";
 import { AREA_PARAM, parseProjectAreaFilter, projectAreaFilterWhere } from "@/lib/project-area-filter";
 import { intakeDetail, intakeLabel, openIssueStages, parseIssueStageView, type IssueStage } from "@/lib/issue-stage";
 
@@ -116,17 +117,12 @@ async function loadOrEmpty<T>(label: string, load: () => Promise<T>, empty: T): 
   }
 }
 
-function issuesQueryError(detail: string) {
+/** The database error stays in the server log under `reference` (#506). */
+function issuesQueryError(reference: string, message?: string) {
   return (
-    <div className="rounded-xl border border-red-200 bg-white px-6 py-10">
-      <h1 className="text-xl font-semibold text-slate-900">Issues could not be loaded</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        The issues query failed. The message below is the database error.
-      </p>
-      <pre className="mt-4 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-800">
-        {detail}
-      </pre>
-    </div>
+    <LoadError title="Issues could not be loaded" reference={reference}>
+      {message}
+    </LoadError>
   );
 }
 
@@ -290,7 +286,7 @@ export default async function BugsPage({
   try {
     totalCount = await prisma.bug.count({ where });
   } catch (error) {
-    console.error("[bugs] list count failed", error);
+    const reference = logLoadFailure("[bugs] list count failed", error);
     const missingColumn = isMissingTenantColumnError(error);
     if (!tenantId) {
       // No membership: nothing to show either way (#439).
@@ -304,11 +300,11 @@ export default async function BugsPage({
       // #506: never retry without the tenant filter. That used to show every
       // tenant's issues to anyone whose query error mentioned the column.
       return issuesQueryError(
+        reference,
         "The issue list is unavailable while the database finishes upgrading. Try again in a minute.",
       );
     } else {
-      const detail = error instanceof Error ? error.message : "Could not load issues";
-      return issuesQueryError(detail);
+      return issuesQueryError(reference);
     }
   }
 
@@ -332,29 +328,66 @@ export default async function BugsPage({
     }
   }
 
+  const isResolvedView = statusParam === "resolved";
+
   let platformTabs: PlatformTab[] = [];
   if (!isDeletedView) {
     try {
-      const grouped = await prisma.bug.groupBy({
-        by: ["categoryId"],
-        where: platformTabWhere,
-        _count: { _all: true },
-      });
+      const { status: _tabStatus, ...baseTabWhere } = platformTabWhere;
+      void _tabStatus;
+      const liveTabWhere: Prisma.BugWhereInput = {
+        ...baseTabWhere,
+        status: defaultStatusWhere(false),
+      };
+
+      const [grouped, resolvedCount] = await Promise.all([
+        prisma.bug.groupBy({
+          by: ["categoryId"],
+          where: liveTabWhere,
+          _count: { _all: true },
+        }),
+        prisma.bug.count({
+          where: {
+            ...baseTabWhere,
+            status: "resolved",
+          },
+        }),
+      ]);
+
       const counts = new Map(grouped.map((row) => [row.categoryId, row._count._all]));
       const all = grouped.reduce((sum, row) => sum + row._count._all, 0);
-      const noPlatform = counts.get(null) ?? 0;
-      platformTabs = [
-        { id: null, name: "All", count: all },
-        // Active platforms, plus a deactivated one if a link picked it.
-        ...platformChoices(platforms, selectedPlatform).map((platform) => ({
-          id: platform.id,
-          name: platform.name,
-          count: counts.get(platform.id) ?? 0,
-        })),
-        ...(noPlatform > 0 || selectedPlatform === PLATFORM_NONE
-          ? [{ id: PLATFORM_NONE, name: "No platform", count: noPlatform }]
-          : []),
-      ];
+
+      const choices = platformChoices(platforms, selectedPlatform);
+      if (choices.length > 0) {
+        platformTabs = [
+          { id: null, name: "All", count: all },
+          // Active platforms, plus a deactivated one if a link picked it.
+          ...choices.map((platform) => ({
+            id: platform.id,
+            name: platform.name,
+            count: counts.get(platform.id) ?? 0,
+          })),
+          {
+            id: "resolved",
+            name: "Resolved",
+            count: resolvedCount,
+            icon: (
+              <svg
+                className="h-4 w-4 shrink-0 text-emerald-600"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            ),
+          },
+        ];
+      }
     } catch (error) {
       console.error("[bugs] platform tab counts failed", error);
     }
@@ -363,10 +396,16 @@ export default async function BugsPage({
     const next = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
       if (key === "page" || key === PLATFORM_PARAM) continue;
+      if (key === "status" && toSingleQueryParam(value) === "resolved") continue;
+      if (key === SHOW_RESOLVED_PARAM) continue;
       const single = toSingleQueryParam(value);
       if (single) next.set(key, single);
     }
-    if (id) next.set(PLATFORM_PARAM, id);
+    if (id === "resolved") {
+      next.set("status", "resolved");
+    } else if (id) {
+      next.set(PLATFORM_PARAM, id);
+    }
     const qs = next.toString();
     return qs ? `/issues?${qs}` : "/issues";
   };
@@ -458,13 +497,9 @@ export default async function BugsPage({
       take: pagination.take,
     })
     .then((bugs) => ({ bugs }))
-    .catch((error: unknown) => {
-      console.error("[bugs] list query failed", error);
-      const detail = error instanceof Error ? error.message : "Could not load issues";
-      return { detail };
-    });
-  if ("detail" in listed) {
-    return issuesQueryError(listed.detail);
+    .catch((error: unknown) => ({ reference: logLoadFailure("[bugs] list query failed", error) }));
+  if ("reference" in listed) {
+    return issuesQueryError(listed.reference);
   }
   const bugs = listed.bugs;
 
@@ -642,7 +677,11 @@ export default async function BugsPage({
       {/* #1054: no sidebar. Reported / Confirmed are a Stage filter now. */}
       <div className="space-y-4">
         {isFirstRun ? null : (
-          <PlatformTabs tabs={platformTabs} current={selectedPlatform} hrefFor={platformHref} />
+          <PlatformTabs
+            tabs={platformTabs}
+            current={isResolvedView ? "resolved" : selectedPlatform}
+            hrefFor={platformHref}
+          />
         )}
         {isFirstRun ? null : (
           <Suspense
@@ -650,6 +689,7 @@ export default async function BugsPage({
           >
             <IssueFilters
               tagTypes={tagTypes}
+              platforms={platforms}
               milestones={milestones}
               areas={areas}
               shortcutsEnabled={shortcutsEnabled}

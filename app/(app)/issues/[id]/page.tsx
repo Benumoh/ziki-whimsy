@@ -44,8 +44,6 @@ import { IssueBids } from "@/components/issue-bids";
 import { GoalBudgetSection } from "@/components/goal-budgets";
 import { Badge } from "@/components/ui/badge";
 import { VoteButton } from "@/components/vote-button";
-import { WatchButton } from "@/components/watch-button";
-import { isWatchingIssue } from "@/lib/watch";
 import { UpdateIssueForm } from "@/components/update-issue-form";
 import { CommentThread } from "@/components/comment-thread";
 import { AttachmentList, type AttachmentView } from "@/components/attachment-list";
@@ -64,6 +62,8 @@ import {
 } from "@/lib/ticket-deletion";
 import { currentTenantAccess } from "@/lib/tenant-access";
 import { MilestoneDue } from "@/components/milestone-due";
+import { LoadError } from "@/components/load-error";
+import { logLoadFailure } from "@/lib/load-error";
 import { dueDateValue, milestoneIssuesHref } from "@/lib/milestones";
 import { canEditTicket } from "@/lib/ticket-editing";
 import { DeleteIssueButton } from "@/components/delete-issue-button";
@@ -102,18 +102,9 @@ async function loadOptional<T>(label: string, fallback: T, load: () => Promise<T
   }
 }
 
-function issueLoadError(detail: string) {
-  return (
-    <div className="rounded-xl border border-red-200 bg-white px-6 py-10">
-      <h1 className="text-xl font-semibold text-slate-900">This issue could not be loaded</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        The issue query failed. The message below is the database error.
-      </p>
-      <pre className="mt-4 overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-800">
-        {detail}
-      </pre>
-    </div>
-  );
+/** The database error stays in the server log under `reference`. */
+function issueLoadError(reference: string) {
+  return <LoadError title="This issue could not be loaded" reference={reference} />;
 }
 
 export async function generateMetadata({
@@ -269,11 +260,11 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
       },
     })
     .then((bug) => ({ bug }))
-    .catch((error: unknown) => {
-      console.error("[issue] detail query failed", error);
-      const detail = error instanceof Error ? error.message : "Could not load issue";
-      return { detail };
-    });
+    .catch((error: unknown) => ({
+      // `detail` only decides the milestone retry below; it is never shown.
+      detail: error instanceof Error ? error.message : "",
+      reference: logLoadFailure("[issue] detail query failed", error),
+    }));
 
   // If the query failed because Bug.milestoneId or Milestone does not exist in
   // the current database, retry without the milestone relation so the page
@@ -309,15 +300,14 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
             }
           : null,
       }))
-      .catch((error: unknown) => {
-        console.error("[issue] fallback detail query without milestone failed", error);
-        const detail = error instanceof Error ? error.message : "Could not load issue";
-        return { detail };
-      });
+      .catch((error: unknown) => ({
+        detail: error instanceof Error ? error.message : "",
+        reference: logLoadFailure("[issue] fallback detail query without milestone failed", error),
+      }));
   }
 
-  if ("detail" in loadedBug) {
-    return issueLoadError(loadedBug.detail);
+  if ("reference" in loadedBug) {
+    return issueLoadError(loadedBug.reference);
   }
   const bug = loadedBug.bug;
 
@@ -373,7 +363,7 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
     Boolean(bug.areaId && bid.agent.areaPreferences.length);
   const canAwardBid = bug.status === "open" && !bug.isDeleted && (bug.reporterId === user.id || canChooseRedesign);
 
-  const [users, categories, areas, types, voterSummary, activities, activityCount, watchRow, comments, latestStatusChange, attachments, lastRevision, agentDecisions, escalations, volunteerCount, pendingApproval] =
+  const [users, categories, areas, types, voterSummary, activities, activityCount, comments, latestStatusChange, attachments, lastRevision, agentDecisions, escalations, volunteerCount, pendingApproval] =
     await Promise.all([
       canTriage
         ? loadOptional("users", [], () =>
@@ -404,12 +394,6 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
         }),
       ),
       loadOptional("activity count", 0, () => prisma.bugActivity.count({ where: { bugId: id } })),
-      loadOptional<{ userId: string; watching: boolean } | null>("watch", null, () =>
-        prisma.issueWatch.findUnique({
-          where: { userId_bugId: { userId: user.id, bugId: id } },
-          select: { userId: true, watching: true },
-        }),
-      ),
       // The newest threads only (#280); a permalink widens the window to
       // reach its comment.
       loadOptional("comments", NO_COMMENTS, () =>
@@ -636,12 +620,6 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
           bugId={bug.id}
           isAssignedToMe={isAssignee}
           size="sm"
-        />
-      ) : null}
-      {!bug.isDeleted ? (
-        <WatchButton
-          bugId={bug.id}
-          watching={isWatchingIssue(user.id, [bug.reporterId, bug.assigneeId], watchRow)}
         />
       ) : null}
       {canTriage && !bug.isDeleted && !bug.duplicateOf ? (
@@ -906,6 +884,7 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
         initialDescription={bug.description}
         canEdit={canEdit}
         users={users}
+        createdAt={bug.createdAt}
         lastEditedAt={lastRevision?.editedAt ?? null}
         historyHref={`/issues/${bug.id}/history`}
       >
@@ -985,14 +964,6 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
               </dd>
             </div>
           ) : null}
-          <div>
-            <dt className="font-medium text-slate-500">Created</dt>
-            <dd><LocalTime date={bug.createdAt} /></dd>
-          </div>
-          <div>
-            <dt className="font-medium text-slate-500">Updated</dt>
-            <dd><LocalTime date={bug.updatedAt} /></dd>
-          </div>
         </dl>
       </EditableIssueDescription>
 

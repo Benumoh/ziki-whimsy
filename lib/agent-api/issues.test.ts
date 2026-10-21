@@ -185,11 +185,30 @@ describe("agent issue reads", () => {
     expect(response.headers.get("cache-control")).toContain("no-store");
   });
 
-  it("supports no-platform/no-assignee and the same unknown-platform fallback as the app", async () => {
+  it("supports no-platform/no-assignee and rejects an unknown platform or area id (#409)", async () => {
     await list(request("GET", undefined, "?projectId=project-a&platform=none&assignee=none"));
     expect(db.bug.findMany).toHaveBeenLastCalledWith(expect.objectContaining({ where: expect.objectContaining({ categoryId: null, assigneeId: null }) }));
-    await list(request("GET", undefined, "?projectId=project-a&platform=unknown"));
-    expect(db.bug.findMany.mock.lastCall?.[0].where).not.toHaveProperty("categoryId");
+    db.bug.findMany.mockClear();
+    const platform = await list(request("GET", undefined, "?projectId=project-a&platform=unknown"));
+    expect(platform.status).toBe(422);
+    expect((await platform.json()).error).toContain('Unknown platform id "unknown"');
+    const area = await list(request("GET", undefined, "?projectId=project-a&area=unknown"));
+    expect(area.status).toBe(422);
+    expect((await area.json()).error).toContain('Unknown area id "unknown"');
+    expect(db.bug.findMany).not.toHaveBeenCalled();
+  });
+
+  it("filters by a case-insensitive text search on title and description (#460)", async () => {
+    const cursor = encodeCursor({ id: "previous", createdAt: issue.createdAt });
+    await list(request("GET", undefined, `?projectId=project-a&q=%20Login%25&cursor=${cursor}`));
+    const where = db.bug.findMany.mock.lastCall?.[0].where;
+    expect(where.AND).toEqual([{ OR: [
+      { title: { contains: "Login\\%", mode: "insensitive" } },
+      { description: { contains: "Login\\%", mode: "insensitive" } },
+    ] }]);
+    expect(where.OR).toHaveLength(2);
+    await list(request("GET", undefined, "?projectId=project-a&q=%20%20"));
+    expect(db.bug.findMany.mock.lastCall?.[0].where).not.toHaveProperty("AND");
   });
 
   it("keeps only open issues in the requested intake stage, then pages them", async () => {
@@ -697,11 +716,16 @@ describe("issue read confirmation", () => {
     expect((await readIssue()).confirmed).toBe(false);
   });
 
+  function triageClear(id: string, agentId: string, ownerUserId: string) {
+    return { id, agentId, agent: { id: agentId, ownerUserId, level: "triager" } };
+  }
+
   it("is confirmed once two distinct owners have accepted", async () => {
     db.bug.findFirst.mockResolvedValue({ ...issue, status: "open", voteCount: 1 });
     db.issueValidation.findMany.mockResolvedValue([
       accept("v1", "r1", "rob"),
       accept("v2", "r2", "sam"),
+      triageClear("vt", "t1", "tia"),
     ]);
     const body = await readIssue();
     expect(body.confirmed).toBe(true);
@@ -713,6 +737,7 @@ describe("issue read confirmation", () => {
     db.issueValidation.findMany.mockResolvedValue([
       accept("v1", "r1", "rob"),
       accept("v2", "r2", "sam"),
+      triageClear("vt", "t1", "tia"),
     ]);
     const body = await readIssue();
     expect(body.confirmed).toBe(true);

@@ -9,6 +9,7 @@ import { consumeAgentBudget, agentBudgetExceededResponse } from "@/lib/agents/ra
 import { withAgentBudgetHeaders, type AgentBudgetQuota } from "@/lib/agents/rate-budget-headers";
 import { createBugSchema, commentSchema, statusSchema, severitySchema } from "@/lib/validations/issue";
 import { parsePlatformFilter, platformFilterWhere } from "@/lib/platform-filter";
+import { boundSearchTerm, escapeSearchQuery } from "@/lib/search";
 import { parseProjectAreaFilter, projectAreaFilterWhere } from "@/lib/project-area-filter";
 import { intakeKind, openIssueStages, type IssueStage } from "@/lib/issue-stage";
 import { createIssueWithPolicy, cursorOrderBy, cursorWhere, decodeCursor, hashCreateRequest, pageSize, toPage, type IssueCursor } from "@/lib/agent-api/create-policy";
@@ -123,6 +124,18 @@ const issueSelect = {
   area: { select: { id: true, name: true, slug: true } },
 } satisfies Prisma.BugSelect;
 
+/**
+ * #409: the shared parsers turn an unknown id into "no filter" so a stale web
+ * link shows everything. An API client that sends a mistyped id must be told,
+ * not handed the whole backlog.
+ */
+export function requireKnownFilter(name: "platform" | "area", raw: string | null, parsed: string | null): string | null {
+  if (raw?.trim() && parsed === null) {
+    throw new IssueApiError(422, `Unknown ${name} id "${raw.trim()}". Use an id from this project, or "none".`);
+  }
+  return parsed;
+}
+
 export async function listAgentIssues(scope: Scope, params: URLSearchParams) {
   const status = params.get("status");
   const severity = params.get("severity");
@@ -141,13 +154,21 @@ export async function listAgentIssues(scope: Scope, params: URLSearchParams) {
   const cursor = decodeCursor(cursorRaw);
   if (cursorRaw !== null && !cursor) throw new IssueApiError(400, "Invalid cursor.");
   const limit = pageSize(params.get("limit"));
+  const q = params.get("q")?.trim();
+  // #460: same escaped, bounded title/description match the app list uses. AND keeps it apart from the cursor's OR.
+  const search: Prisma.BugWhereInput = q
+    ? { AND: [{ OR: [
+        { title: { contains: escapeSearchQuery(boundSearchTerm(q)), mode: "insensitive" } },
+        { description: { contains: escapeSearchQuery(boundSearchTerm(q)), mode: "insensitive" } },
+      ] }] }
+    : {};
   const filtered: Prisma.BugWhereInput = {
-    ...scope, isDeleted: false,
+    ...scope, isDeleted: false, ...search,
     ...(status ? { status: statusSchema.parse(status) } : {}),
     ...(severity ? { severity: severitySchema.parse(severity) } : {}),
     ...(assignee ? { assigneeId: assignee === "none" ? null : idSchema.parse(assignee) } : {}),
-    ...platformFilterWhere(parsePlatformFilter(params.get("platform"), platforms)),
-    ...projectAreaFilterWhere(parseProjectAreaFilter(requestedArea, areas)),
+    ...platformFilterWhere(requireKnownFilter("platform", params.get("platform"), parsePlatformFilter(params.get("platform"), platforms))),
+    ...projectAreaFilterWhere(requireKnownFilter("area", requestedArea, parseProjectAreaFilter(requestedArea, areas))),
   };
   if (stage) {
     // A stage only exists on an open issue. Any other status is an empty page.
