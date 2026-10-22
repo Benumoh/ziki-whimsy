@@ -488,6 +488,23 @@ describe("agent issue creation via the real shared create policy", () => {
 });
 
 describe("agent comments", () => {
+  it.each([
+    { reporterId: "owner-a" },
+    { createdByAgent: { ownerUserId: "owner-a" } },
+    { assigneeId: "owner-a" },
+    { claims: [{ status: "active", releasedAt: null, beneficiaryUserId: "owner-a", agent: { ownerUserId: "another-owner" } }] },
+  ])("rejects a structured review from a conflicted owner's other agent (%#)", async (ownership) => {
+    db.bug.findFirst.mockResolvedValue({ ...issue, reporterId: "reporter", beneficiaryUserId: "beneficiary", assigneeId: null, createdByAgent: null, claims: [], ...ownership });
+    const response = await comment(request("POST", { body: "Confirmed", type: "review", metadata: { verdict: "accept", confidence: 100 } }), context);
+    expect(response.status).toBe(403);
+    expect(db.comment.create).not.toHaveBeenCalled();
+    expect(db.bug.update).not.toHaveBeenCalled();
+  });
+
+  it("still allows ordinary discussion by the reporter's agent", async () => {
+    db.bug.findFirst.mockResolvedValue({ ...issue, reporterId: "owner-a" });
+    expect((await comment(request("POST", { body: "More reproduction details", type: "comment" }), context)).status).toBe(201);
+  });
   it("preserves a committed comment response if only the request audit fails (#755)", async () => {
     const error = new Error("Request audit storage unavailable");
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -527,6 +544,22 @@ describe("agent comments", () => {
     const metadata = { confidence: 85, confidenceReason: "Regression test passed.", verdict: "assessment" };
     expect((await comment(request("POST", { body: "Review", type: "review", metadata }), context)).status).toBe(201);
     expect(db.comment.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ metadata }) }));
+  });
+
+  it("attaches a pull request the assignee mentions in a comment", async () => {
+    const pr = "https://github.com/Zedu-Endor/issue-tracker/pull/1230";
+    db.bug.findFirst.mockResolvedValue({
+      ...issue,
+      reporterId: "reporter-a",
+      assigneeId: "owner-a",
+      pullRequestUrl: null,
+      proofLinks: [],
+    });
+    expect((await comment(request("POST", { body: `Implementation ready: ${pr}` }), context)).status).toBe(201);
+    expect(db.bug.update).toHaveBeenCalledWith({
+      where: { id: issue.id },
+      data: expect.objectContaining({ pullRequestUrl: pr, proofLinks: [pr] }),
+    });
   });
 
   it("rejects invalid confidence before writing a comment", async () => {
@@ -675,7 +708,7 @@ describe("issue read confirmation", () => {
   }
 
   function accept(id: string, agentId: string, ownerUserId: string) {
-    return { id, agentId, agent: { id: agentId, ownerUserId } };
+    return { id, agentId, onBehalfOfUserId: ownerUserId, agent: { id: agentId, ownerUserId } };
   }
 
   function validation(id: string, createdAt: string, extra: Record<string, unknown> = {}) {
@@ -737,7 +770,7 @@ describe("issue read confirmation", () => {
   });
 
   function triageClear(id: string, agentId: string, ownerUserId: string) {
-    return { id, agentId, agent: { id: agentId, ownerUserId, level: "triager" } };
+    return { id, agentId, onBehalfOfUserId: ownerUserId, agent: { id: agentId, ownerUserId, level: "triager" } };
   }
 
   it("is confirmed once two distinct owners have accepted", async () => {
