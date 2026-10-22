@@ -4,6 +4,7 @@ import type { AgentLevel, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { agentErrorResponse, assertKeyProject, requireAgent, type AgentContext } from "@/lib/agents/require-agent";
 import { requireLevel } from "@/lib/agents/levels";
+import { reviewerConflict, ReviewerNotIndependentError, type ReviewedBug } from "@/lib/agents/independence";
 import { audit } from "@/lib/agents/audit";
 import { consumeAgentBudget, agentBudgetExceededResponse } from "@/lib/agents/rate-budget";
 import { withAgentBudgetHeaders, type AgentBudgetQuota } from "@/lib/agents/rate-budget-headers";
@@ -20,6 +21,7 @@ import { commentDepth, MAX_COMMENT_DEPTH } from "@/lib/comments";
 import { attachmentIdsInMarkdown, linkAttachments } from "@/lib/attachment-link";
 import { MAX_ATTACHMENTS_PER_ITEM } from "@/lib/attachments";
 import { publish } from "@/lib/agent-api/events";
+import { pullRequestAttachment } from "@/lib/github/pr-mention";
 import { isConfirmed } from "@/lib/agent-api/validation";
 import { notifyLater } from "@/lib/notify";
 import type { NotificationEvent } from "@/lib/notifications";
@@ -377,14 +379,30 @@ export async function createAgentIssue(agent: AgentContext, request: NextRequest
 export async function commentOnAgentIssue(agent: AgentContext, request: NextRequest, bugId: string) {
   const input = agentCommentSchema.parse(await issueJson(request));
   const scope = await issueProject(agent, request.nextUrl.searchParams, input.projectId);
-  let bug: { id: string; title: string; reporterId: string; assigneeId: string | null } | null = null;
+  let bug: ({
+    id: string;
+    title: string;
+    reporterId: string;
+    assigneeId: string | null;
+    pullRequestUrl: string | null;
+    proofLinks: string[];
+  } & ReviewedBug) | null = null;
   let parentAuthorId: string | null = null;
   const comment = await prisma.$transaction(async (tx) => {
     bug = await tx.bug.findFirst({
       where: { ...scope, id: bugId, isDeleted: false },
-      select: { id: true, title: true, reporterId: true, assigneeId: true },
+      select: {
+        id: true, title: true, reporterId: true, assigneeId: true, beneficiaryUserId: true,
+        pullRequestUrl: true, proofLinks: true,
+        createdByAgent: { select: { ownerUserId: true } },
+        claims: { where: { status: "active", releasedAt: null }, select: { status: true, releasedAt: true, beneficiaryUserId: true, dispatcherUserId: true, agent: { select: { ownerUserId: true } } } },
+      },
     });
     if (!bug) throw new IssueApiError(404, "Issue not found.");
+    if (input.type === "review") {
+      const conflict = reviewerConflict({ id: agent.agentId, ownerUserId: agent.ownerId }, bug);
+      if (conflict) throw new IssueApiError(403, "not_independent", { message: new ReviewerNotIndependentError(conflict).message });
+    }
     if (input.parentId) {
       const parent = await tx.comment.findFirst({ where: { id: input.parentId, bugId, deletedAt: null }, select: { id: true, authorId: true } });
       if (!parent) throw new IssueApiError(422, "Parent comment not found on this issue.");
@@ -422,7 +440,33 @@ export async function commentOnAgentIssue(agent: AgentContext, request: NextRequ
       bugId, actorId: agent.ownerId, type: "commented", summary: commentedSummary(body),
       metadata: { commentId: created.id, commentPreview: commentPreview(body) },
     } });
-    await tx.bug.update({ where: { id: bugId }, data: { updatedAt: new Date() } });
+    const attachment = pullRequestAttachment({
+      authorId: agent.ownerId,
+      assigneeId: bug.assigneeId,
+      pullRequestUrl: bug.pullRequestUrl,
+      proofLinks: bug.proofLinks ?? [],
+      body,
+      metadata: input.metadata,
+    });
+    await tx.bug.update({
+      where: { id: bugId },
+      data: {
+        updatedAt: new Date(),
+        ...(attachment ? { pullRequestUrl: attachment.pullRequestUrl } : {}),
+        ...(attachment?.proofLinks ? { proofLinks: attachment.proofLinks } : {}),
+      },
+    });
+    if (attachment) {
+      await tx.bugActivity.create({
+        data: {
+          bugId,
+          actorId: agent.ownerId,
+          type: "edited",
+          summary: `linked PR ${attachment.pullRequestUrl}`,
+          metadata: { field: "pullRequestUrl", pullRequestUrl: attachment.pullRequestUrl, via: "comment" },
+        },
+      });
+    }
     await tx.issueWatch.upsert({ where: { userId_bugId: { bugId, userId: agent.ownerId } },
       create: { bugId, userId: agent.ownerId }, update: {} });
     await audit(agent, "comment.created", created.id, { authorId: agent.ownerId }, { db: tx, bugId });
