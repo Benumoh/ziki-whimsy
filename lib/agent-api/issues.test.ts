@@ -87,6 +87,15 @@ beforeEach(() => {
 });
 
 describe("agent issue API authentication", () => {
+  it.each(["triager", "reviewer"] as const)("lets a %s read and comment but not create or claim work", async (level) => {
+    const key = await db.agentApiKey.findUnique();
+    db.agentApiKey.findUnique.mockResolvedValue({ ...key, agent: { ...key.agent, level } });
+    expect((await list(request())).status).toBe(200);
+    expect((await comment(request("POST", { body: "Role-scoped assessment" }), context)).status).toBe(201);
+    expect((await create(request("POST", validBody))).status).toBe(403);
+    expect((await claim(request("POST", {}), context)).status).toBe(403);
+    expect(db.bug.create).not.toHaveBeenCalled();
+  });
   it("fails closed without a key on every route", async () => {
     const responses = await Promise.all([
       list(request("GET", undefined, "", false)), read(request("GET", undefined, "", false), context),
@@ -514,6 +523,17 @@ describe("agent comments", () => {
     }), expect.any(Error));
   });
 
+  it("persists optional confidence alongside other comment metadata", async () => {
+    const metadata = { confidence: 85, confidenceReason: "Regression test passed.", verdict: "assessment" };
+    expect((await comment(request("POST", { body: "Review", type: "review", metadata }), context)).status).toBe(201);
+    expect(db.comment.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ metadata }) }));
+  });
+
+  it("rejects invalid confidence before writing a comment", async () => {
+    expect((await comment(request("POST", { body: "Review", metadata: { confidence: 101 } }), context)).status).toBe(422);
+    expect(db.comment.create).not.toHaveBeenCalled();
+  });
+
   it("records the person and agent with activity, watching, and audit", async () => {
     expect((await comment(request("POST", { body: "A helpful comment" }), context)).status).toBe(201);
     expect(db.comment.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ bugId: issue.id, authorId: "owner-a", agentId: "agent-a", body: "A helpful comment", parentId: null }) }));
@@ -751,6 +771,18 @@ describe("issue read confirmation", () => {
       accept("v2", "r2", "rob"),
     ]);
     expect((await readIssue()).confirmed).toBe(false);
+  });
+
+  it("reads an issue by its readable number as well as its id (#457)", async () => {
+    db.bug.findFirst.mockResolvedValue({ ...issue, status: "open", voteCount: 0 });
+    db.issueValidation.findMany.mockResolvedValue([]);
+    for (const ref of ["12", "ZE-12"]) {
+      await read(request(), { params: Promise.resolve({ id: ref }) });
+      expect(db.bug.findFirst.mock.calls.at(-1)?.[0]?.where).toMatchObject({ number: 12, isDeleted: false });
+      expect(db.bug.findFirst.mock.calls.at(-1)?.[0]?.where).not.toHaveProperty("id");
+    }
+    await read(request(), context);
+    expect(db.bug.findFirst.mock.calls.at(-1)?.[0]?.where).toMatchObject({ id: issue.id });
   });
 
   it("leaves the list response without validations or confirmed", async () => {
