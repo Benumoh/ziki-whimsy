@@ -128,7 +128,7 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full min-w-0 max-w-full flex-col overflow-x-clip bg-zk-bg lg:flex-row">
+    <div className="flex min-h-screen w-full min-w-0 max-w-full flex-col bg-zk-bg lg:flex-row">
       <SkipLink />
       <AppSidebar
         issueCount={issueCount}
