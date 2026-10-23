@@ -407,6 +407,11 @@ export function AppHeader({
                     Admins
                   </MenuLink>
                 ) : null}
+                {isRealSuperAdmin || isSuperAdmin(role) ? (
+                  <MenuLink href="/admin/rewards" active={isNavItemActive(pathname, "/admin/rewards")}>
+                    Platform points
+                  </MenuLink>
+                ) : null}
                 <MenuLink href="/settings/profile" active={isNavItemActive(pathname, "/settings/profile")}>
                   Profile
                 </MenuLink>

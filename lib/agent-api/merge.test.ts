@@ -319,7 +319,7 @@ describe("acceptFix: dispatcher completion reward", () => {
     const rewards = db.pointEntry.createMany.mock.calls.flatMap((call) => call[0].data).filter((entry) => entry.role === "dispatcher");
     expect(rewards).toEqual([{
       tenantId: "tenant_zedu", bugId: "bug1", userId: "dispatcher-owner",
-      role: "dispatcher", points: 2, sourceKey: "dispatcher:bug1",
+      role: "dispatcher", points: 140, sourceKey: "dispatcher:bug1",
     }]);
   });
 
@@ -373,7 +373,7 @@ describe("acceptFix: a successful accept (#434)", () => {
       userId: "ada",
       bugId: "bug1",
       role: "solver",
-      points: 25,
+      points: 1750,
       sourceKey: "solver:bug1:ada",
     });
     expect(awards.filter((a) => a.role === "solver")).toHaveLength(1);
@@ -437,9 +437,9 @@ describe("acceptFix: a successful accept (#434)", () => {
     const awards = db.pointEntry.createMany.mock.calls.map((call) => call[0].data[0]);
     const reviewerAwards = awards.filter((a) => a.role === "reviewer");
     expect(reviewerAwards).toHaveLength(3);
-    expect(reviewerAwards[0]).toMatchObject({ userId: "rob", points: 10, sourceKey: "reviewer:bug1:rob" });
-    expect(reviewerAwards[1]).toMatchObject({ userId: "sam", points: 7, sourceKey: "reviewer:bug1:sam" });
-    expect(reviewerAwards[2]).toMatchObject({ userId: "tia", points: 4, sourceKey: "reviewer:bug1:tia" });
+    expect(reviewerAwards[0]).toMatchObject({ userId: "rob", points: 700, sourceKey: "reviewer:bug1:rob" });
+    expect(reviewerAwards[1]).toMatchObject({ userId: "sam", points: 691, sourceKey: "reviewer:bug1:sam" });
+    expect(reviewerAwards[2]).toMatchObject({ userId: "tia", points: 682, sourceKey: "reviewer:bug1:tia" });
   });
 
   it("does not count or pay a verdict credited to the active claim beneficiary (#495)", async () => {

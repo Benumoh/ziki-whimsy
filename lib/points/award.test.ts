@@ -19,14 +19,14 @@ function fakeLedger() {
 const issue = { id: "bug-1", tenantId: "tenant-zedu", severity: "high" as const, assigneeId: "user-1" };
 
 describe("points ledger (#428)", () => {
-  it("pays the dispatcher 2 points only once per completed issue, including reassignment", async () => {
+  it("pays the dispatcher once per completed issue, including reassignment", async () => {
     const { db, rows } = fakeLedger();
     expect(await awardDispatcher(db, { id: "bug-1", tenantId: "tenant-zedu" }, "dispatcher-owner")).toBe(true);
     expect(await awardDispatcher(db, { id: "bug-1", tenantId: "tenant-zedu" }, "dispatcher-owner")).toBe(false);
     expect(await awardDispatcher(db, { id: "bug-1", tenantId: "tenant-zedu" }, "another-owner")).toBe(false);
     expect(rows).toEqual([{
       tenantId: "tenant-zedu", bugId: "bug-1", userId: "dispatcher-owner",
-      role: "dispatcher", points: 2, sourceKey: "dispatcher:bug-1",
+      role: "dispatcher", points: 140, sourceKey: "dispatcher:bug-1",
     }]);
   });
 
@@ -42,7 +42,7 @@ describe("points ledger (#428)", () => {
       userId: "user-1",
       bugId: "bug-1",
       role: "solver",
-      points: 40,
+      points: 2800,
       sourceKey: "solver:bug-1:user-1",
     });
   });
@@ -59,14 +59,14 @@ describe("points ledger (#428)", () => {
     expect(await awardSolver(db, issue)).toBe(true);
     expect(await awardSolver(db, issue)).toBe(false);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ points: 40, role: "solver" });
+    expect(rows[0]).toMatchObject({ points: 2800, role: "solver" });
   });
 
   it("uses the severity at resolution time", async () => {
     const { db, rows } = fakeLedger();
     await awardSolver(db, { ...issue, id: "bug-2", severity: "critical" });
     await awardSolver(db, { ...issue, id: "bug-3", severity: "low" });
-    expect(rows.map((r) => r.points)).toEqual([60, 15]);
+    expect(rows.map((r) => r.points)).toEqual([4200, 1050]);
   });
 
   it("skips duplicates in the database instead of failing", async () => {

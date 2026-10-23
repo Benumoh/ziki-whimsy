@@ -103,7 +103,7 @@ describe("leaderboard redesign", () => {
     expect(html).toContain("#1");
     expect(html).toContain("of 3 people");
     expect(html).toContain("120 pts ahead of #2");
-    expect(html).toContain("Goal reached · +16");
+    expect(html).toContain("34484 pts to goal");
     expect(html).toContain("Rankings");
     expect(html).toContain('aria-label="Sort by"');
     expect(html).toContain(">Points</a>");

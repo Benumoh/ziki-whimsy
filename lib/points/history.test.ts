@@ -19,8 +19,8 @@ const entry = (iso: string, points: number) => ({
 describe("points history buckets", () => {
   const now = new Date("2026-10-22T15:00:00Z");
 
-  it("exposes the 500-pt weekly target", () => {
-    expect(WEEKLY_POINTS_TARGET).toBe(500);
+  it("exposes the 35000-pt weekly target", () => {
+    expect(WEEKLY_POINTS_TARGET).toBe(35_000);
   });
 
   it("starts ISO weeks on Monday UTC", () => {
@@ -53,7 +53,7 @@ describe("points history buckets", () => {
     expect(series.caption).toBe(captionFor("daily"));
   });
 
-  it("marks weekly series with a 500 target and sums each week", () => {
+  it("marks weekly series with a 35000 target and sums each week", () => {
     const series = buildPointsSeries({
       entries: [
         entry("2026-10-06T10:00:00Z", 300),
@@ -64,7 +64,7 @@ describe("points history buckets", () => {
       granularity: "weekly",
       now,
     });
-    expect(series.target).toBe(500);
+    expect(series.target).toBe(35_000);
     expect(series.buckets.length).toBe(8);
     const week5 = series.buckets.find((b) => b.label === "5 Oct");
     const week12 = series.buckets.find((b) => b.label === "12 Oct");
