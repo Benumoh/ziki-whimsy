@@ -28,9 +28,9 @@ export function PlatformTabs({
   return (
     <nav
       aria-label="Platforms"
-      className="-mx-1 w-full min-w-0 max-w-full overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="grid min-w-0 max-w-full flex-1 basis-0 grid-cols-[minmax(0,1fr)] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      <ul className="inline-flex min-w-max items-center gap-0.5 rounded-full bg-zk-seg p-1">
+      <ul className="col-start-1 flex w-max items-center gap-0.5 rounded-full bg-zk-seg p-1">
         {tabs.map((tab) => {
           const active = tab.active ?? (tab.id === current);
           const href = tab.href ?? (hrefFor ? hrefFor(tab.id) : "#");
