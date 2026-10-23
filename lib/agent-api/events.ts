@@ -72,6 +72,7 @@ export const AGENT_EVENT_TYPES = [
   "issue.test_verdict",
   "issue.updated",
   "issue.validated",
+  "issue.voted",
   "job.created",
   "job.review.requested",
   "job.submission.reviewed",
