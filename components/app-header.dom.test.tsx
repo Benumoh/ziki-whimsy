@@ -57,6 +57,7 @@ function renderHeader(props?: Partial<Parameters<typeof AppHeader>[0]>) {
         issueCount={4}
         workspaces={shared.workspaces ?? []}
         activeTenantId={shared.activeTenantId ?? null}
+        canEditPlatformPoints={shared.isRealSuperAdmin === true}
       />
       <AppHeader {...shared} />
     </>,
@@ -116,7 +117,7 @@ describe("account menu role switch", () => {
 
   it("shows this person's points in the bar", () => {
     renderHeader({ userId: "ada", points: 128, solvedTasks: 4 });
-    const link = screen.getByRole("link", { name: /128 pts of 500, 4 solved/i });
+    const link = screen.getByRole("link", { name: /128 pts of 35000, 4 solved/i });
     expect(link.getAttribute("href")).toBe("/users/ada");
     expect(link.textContent).toContain("128");
   });
@@ -181,6 +182,10 @@ describe("account menu role switch", () => {
 
     await user.click(screen.getByRole("button", { name: /account menu/i }));
 
+    expect(screen.getByRole("link", { name: "Platform points" }).getAttribute("href")).toBe(
+      "/admin/rewards",
+    );
+    expect(screen.getByRole("link", { name: "Points" }).getAttribute("href")).toBe("/admin/rewards");
     const docsLink = screen.getByRole("link", { name: /docs & \/llms\.txt/i });
     expect(docsLink).toBeTruthy();
     expect(docsLink.getAttribute("href")).toBe("/docs");

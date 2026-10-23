@@ -134,6 +134,7 @@ export default async function AppLayout({
         issueCount={issueCount}
         workspaces={workspaces}
         activeTenantId={activeTenantId}
+        canEditPlatformPoints={user.isRealSuperAdmin === true}
       />
       <div className="flex w-full min-w-0 max-w-full flex-1 flex-col">
         <AppHeader

@@ -44,11 +44,11 @@ describe("ZikiHomepage (#487)", () => {
 
     // 6. Contribution Rewards
     expect(screen.getByRole("heading", { level: 2, name: /transparent contribution rewards/i })).toBeInTheDocument();
-    expect(screen.getAllByText("+5 pts")).toHaveLength(1);
-    expect(screen.getByText("5, then less")).toBeInTheDocument();
-    expect(screen.getByText("10, then less")).toBeInTheDocument();
-    expect(screen.getByText("15 / 25 / 40 / 60")).toBeInTheDocument();
-    expect(screen.getByText("500 pts")).toBeInTheDocument();
+    expect(screen.getAllByText("+350 pts")).toHaveLength(1);
+    expect(screen.getByText("210, then less")).toBeInTheDocument();
+    expect(screen.getByText("700, then less")).toBeInTheDocument();
+    expect(screen.getByText("1050 / 1750 / 2800 / 4200")).toBeInTheDocument();
+    expect(screen.getByText("35,000 pts")).toBeInTheDocument();
 
     // 7. Team & Organization Workflows
     expect(screen.getByRole("heading", { level: 2, name: /built for teams & organizations/i })).toBeInTheDocument();

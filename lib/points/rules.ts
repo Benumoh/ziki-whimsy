@@ -1,35 +1,35 @@
 import type { Severity } from "@prisma/client";
 
 /**
- * Point rules for the contributor ledger (#428). Every number here comes from
- * the agent-platform epic (#422); change them there first.
+ * Point rules for the contributor ledger (#428). Amounts are the original
+ * epic (#422) figures multiplied by 70. Super admins can override them.
  */
 
 /** Solver points by the severity stored on the issue when it is resolved. */
 export const SOLVER_POINTS: Record<Severity, number> = {
-  low: 15,
-  medium: 25,
-  high: 40,
-  critical: 60,
+  low: 1050,
+  medium: 1750,
+  high: 2800,
+  critical: 4200,
 };
 
 /** Reporter points, once the bug is accepted as real and not a duplicate. */
-export const REPORTER_POINTS = 5;
+export const REPORTER_POINTS = 350;
 
 /** Reviewer points, when a "good to merge" verdict is accepted. */
-export const REVIEWER_POINTS = 10;
+export const REVIEWER_POINTS = 700;
 
 /**
  * Reviewer points for an independent "real" accept that confirms the issue.
  * Separate from the merge verdict so the same person can earn both.
  */
-export const CONFIRMATION_REVIEWER_POINTS = 3;
+export const CONFIRMATION_REVIEWER_POINTS = 210;
 
 /** Triager points for clearing a report as not a duplicate. */
-export const TRIAGER_CLEAR_POINTS = 1;
+export const TRIAGER_CLEAR_POINTS = 70;
 
 /** Triager points for marking a report as a duplicate of another issue. */
-export const DUPLICATE_MARKER_POINTS = 5;
+export const DUPLICATE_MARKER_POINTS = 350;
 
 /**
  * The next reviewer's award, given the previous reviewer's award.
@@ -52,9 +52,15 @@ export function reviewerPointsAt(index: number, firstAward: number): number {
 }
 
 /** The goal is this many points. Solved tasks are counted, not required. */
-export const TARGET_POINTS = 500;
+export const TARGET_POINTS = 35_000;
 
-export const DISPATCHER_POINTS = 2;
+export const DISPATCHER_POINTS = 140;
+
+/** Largest award a super admin can store for one action. */
+export const POINT_AWARD_MAX = 1_000_000;
+
+/** Largest points goal a super admin can store. */
+export const POINT_TARGET_MAX = 100_000_000;
 
 export type PointRole = "solver" | "reporter" | "reviewer" | "triager" | "submission" | "dispatcher";
 

@@ -51,10 +51,12 @@ export function AppSidebar({
   issueCount,
   workspaces,
   activeTenantId,
+  canEditPlatformPoints = false,
 }: {
   issueCount: number;
   workspaces: WorkspaceChoice[];
   activeTenantId: string | null;
+  canEditPlatformPoints?: boolean;
 }) {
   const pathname = usePathname();
   const collapsed = useSyncExternalStore(subscribeCollapsed, collapsedNow, () => false);
@@ -132,6 +134,19 @@ export function AppSidebar({
             <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
           </NavIcon>
         </SidebarLink>
+        {canEditPlatformPoints ? (
+          <SidebarLink
+            href="/admin/rewards"
+            active={isNavItemActive(pathname, "/admin/rewards")}
+            labelClass={label}
+            label="Points"
+          >
+            <NavIcon>
+              <path d="M12 2v20" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </NavIcon>
+          </SidebarLink>
+        ) : null}
         <SidebarLink href="/settings/team" active={team} labelClass={label} label="Team">
           <NavIcon>
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />

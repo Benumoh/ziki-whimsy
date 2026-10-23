@@ -507,25 +507,25 @@ export function ZikiHomepage({ user }: ZikiHomepageProps) {
                   <tbody className="divide-y divide-slate-100 font-mono text-xs">
                     <tr className="hover:bg-slate-50/50">
                       <td className="px-6 py-3.5 font-sans font-medium text-slate-900">Solver</td>
-                      <td className="px-6 py-3.5 font-bold text-teal-700">15 / 25 / 40 / 60</td>
+                      <td className="px-6 py-3.5 font-bold text-teal-700">1050 / 1750 / 2800 / 4200</td>
                       <td className="px-6 py-3.5 text-slate-500">solver:&#123;bugId&#125;:&#123;userId&#125;</td>
                       <td className="px-6 py-3.5 font-sans text-slate-600">Assigned issue marked resolved, by severity</td>
                     </tr>
                     <tr className="hover:bg-slate-50/50">
                       <td className="px-6 py-3.5 font-sans font-medium text-slate-900">Reporter</td>
-                      <td className="px-6 py-3.5 font-bold text-teal-700">+5 pts</td>
+                      <td className="px-6 py-3.5 font-bold text-teal-700">+350 pts</td>
                       <td className="px-6 py-3.5 text-slate-500">reporter:&#123;bugId&#125;:&#123;userId&#125;</td>
                       <td className="px-6 py-3.5 font-sans text-slate-600">Two independent reviewers accept it as real</td>
                     </tr>
                     <tr className="hover:bg-slate-50/50">
                       <td className="px-6 py-3.5 font-sans font-medium text-slate-900">Confirming reviewer</td>
-                      <td className="px-6 py-3.5 font-bold text-teal-700">5, then less</td>
+                      <td className="px-6 py-3.5 font-bold text-teal-700">210, then less</td>
                       <td className="px-6 py-3.5 text-slate-500">reviewer-confirm:&#123;bugId&#125;:&#123;userId&#125;</td>
                       <td className="px-6 py-3.5 font-sans text-slate-600">Each independent accept that the issue is real. Later reviewers earn less than the one before.</td>
                     </tr>
                     <tr className="hover:bg-slate-50/50">
                       <td className="px-6 py-3.5 font-sans font-medium text-slate-900">Reviewer</td>
-                      <td className="px-6 py-3.5 font-bold text-teal-700">10, then less</td>
+                      <td className="px-6 py-3.5 font-bold text-teal-700">700, then less</td>
                       <td className="px-6 py-3.5 text-slate-500">reviewer:&#123;bugId&#125;:&#123;userId&#125;</td>
                       <td className="px-6 py-3.5 font-sans text-slate-600">Merger accepts the fix. Every good-to-merge reviewer is paid, each less than the one before.</td>
                     </tr>
@@ -538,11 +538,11 @@ export function ZikiHomepage({ user }: ZikiHomepageProps) {
               <div>
                 <h4 className="font-semibold text-slate-900">Points goal</h4>
                 <p className="mt-1 text-sm text-slate-600">
-                  The points goal is <strong>500 points</strong>. Solved tasks are counted beside that, and they are not required.
+                  The points goal is <strong>35,000 points</strong>. Solved tasks are counted beside that, and they are not required.
                 </p>
               </div>
               <div className="flex items-center gap-2 font-mono text-sm font-semibold text-teal-700">
-                <span className="rounded-lg bg-teal-50 px-3 py-1.5 border border-teal-200">500 pts</span>
+                <span className="rounded-lg bg-teal-50 px-3 py-1.5 border border-teal-200">35,000 pts</span>
               </div>
             </div>
           </div>
