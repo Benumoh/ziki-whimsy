@@ -75,7 +75,7 @@ export function AppSidebar({
 
   return (
     <aside
-      className={`flex w-full flex-col gap-4 bg-deep-ocean px-4 py-5 text-[#DCE5F5] lg:sticky lg:top-0 lg:h-dvh lg:shrink-0 lg:overflow-y-auto ${
+      className={`flex w-full min-w-0 max-w-full flex-col gap-4 bg-deep-ocean px-4 py-5 text-[#DCE5F5] lg:sticky lg:top-0 lg:h-dvh lg:shrink-0 lg:overflow-y-auto ${
         collapsed ? "lg:w-[72px] lg:px-3" : "lg:w-[248px]"
       }`}
     >

@@ -135,7 +135,7 @@ export default async function AppLayout({
         workspaces={workspaces}
         activeTenantId={activeTenantId}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex w-full min-w-0 max-w-full flex-1 flex-col">
         <AppHeader
           userName={user.name ?? user.email}
           userImage={user.image}
