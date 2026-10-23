@@ -822,10 +822,11 @@ export default async function BugsPage({
                             readOnly={isDeletedView}
                           />
                         </div>
+                        <div className="flex min-w-0 flex-1">
                         <Link
                           href={issuePath(bug.number)}
                           data-issue-link=""
-                          className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-electric-blue"
+                          className="flex w-fit min-w-0 max-w-full items-center gap-3 rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-electric-blue"
                         >
                           <span
                             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
@@ -866,6 +867,7 @@ export default async function BugsPage({
                             {snippets.has(bug.id) ? <SearchSnippet snippet={snippets.get(bug.id)!} /> : null}
                           </span>
                         </Link>
+                        </div>
                         <span className="w-[92px] shrink-0 text-[13px] text-zk-text2">{typeName}</span>
                         <span className="w-24 shrink-0">
                           <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-bold ${severityPillClass(bug.severity)}`}>
