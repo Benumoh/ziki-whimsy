@@ -32,7 +32,7 @@ function BrandPanel() {
   return (
     <section
       aria-label="About Ziki"
-      className="relative flex min-h-[min(100vh,720px)] flex-[1_1_560px] flex-col gap-10 overflow-hidden bg-deep-ocean px-8 py-12 text-white sm:px-14"
+      className="relative flex w-full flex-col gap-10 overflow-hidden bg-deep-ocean px-8 py-12 text-white sm:px-14 lg:min-h-[min(100vh,720px)] lg:flex-[1_1_560px]"
     >
       <div
         aria-hidden="true"
@@ -233,7 +233,7 @@ function AgentDocsCallout() {
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-[13px] font-bold">
           <Link
             href="/llms.txt"
-            className="inline-flex min-h-7 items-center gap-1 font-mono text-zk-accent hover:underline"
+            className="inline-flex min-h-7 max-w-full flex-wrap items-center gap-1 font-mono text-zk-text underline decoration-zk-border underline-offset-2 hover:decoration-zk-text"
           >
             /llms.txt spec
             <svg
@@ -317,11 +317,11 @@ export function AuthSplitFrame({
   mark?: boolean;
 }) {
   return (
-    <div className="zk-motion ziki-auth-frame flex min-h-screen flex-wrap bg-zk-bg text-zk-text">
+    <div className="zk-motion ziki-auth-frame flex min-h-screen flex-col bg-zk-bg text-zk-text lg:flex-row">
       <BrandPanel />
       <section
         aria-label={panelLabel}
-        className="relative flex flex-[1_1_480px] flex-col items-center justify-center gap-7 px-6 py-10 sm:px-8"
+        className="relative flex w-full flex-col items-center justify-center gap-7 px-6 py-10 sm:px-8 lg:flex-[1_1_480px]"
       >
         <div className="absolute top-6 right-6">
           <ThemeToggle />
