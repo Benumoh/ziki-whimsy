@@ -187,6 +187,8 @@ describe("issue list layout", () => {
     const html = await renderList({ platform: "cat-web", page: "2", q: "login" });
 
     const nav = html.match(/<nav aria-label="Platforms"[\s\S]*?<\/nav>/)?.[0] ?? "";
+    expect(nav).toContain("overflow-x-auto");
+    expect(nav).toContain("minmax(0,1fr)");
     const tabs = [...nav.matchAll(/<a [^>]*>(?:<svg[\s\S]*?<\/svg>)?([^<]+)<span[^>]*>(\d+)<\/span><\/a>/g)].map((m) => `${m[1].trim()} ${m[2]}`);
     // Active platforms only (not the inactive Desktop), and Resolved tab with count.
     expect(tabs).toEqual(["All 7", "Web 4", "Mobile 2", "No platform 1", "Resolved 1"]);
