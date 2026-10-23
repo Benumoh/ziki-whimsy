@@ -691,7 +691,7 @@ export default async function BugsPage({
 
       <div className="space-y-4">
         {isFirstRun ? null : (
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2.5">
             <PlatformTabs
               tabs={platformTabs}
               current={isResolvedView ? "resolved" : selectedPlatform}
