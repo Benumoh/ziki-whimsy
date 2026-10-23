@@ -777,16 +777,16 @@ export default async function BugsPage({
             </div>
 
             <div className="min-w-0 overflow-x-auto">
-              <div className="min-w-[860px]">
+              <div className="min-w-0 md:min-w-[860px]">
                 <div className="flex items-center gap-4 rounded-full bg-zk-tint px-4 py-3.5 text-xs font-bold uppercase tracking-[0.05em] text-zk-accent">
                   <span className="w-[52px]">Votes</span>
                   <span className="min-w-0 flex-1">Issue</span>
-                  <span className="w-[92px]">Type</span>
-                  <span className="w-24">Priority</span>
-                  <span className="w-[76px]">Status</span>
-                  <span className="w-[104px]">Stage</span>
-                  <span className="w-[84px]">Reported</span>
-                  <span className="w-10" aria-hidden="true" />
+                  <span className="hidden w-[92px] md:inline">Type</span>
+                  <span className="hidden w-24 md:inline">Priority</span>
+                  <span className="hidden w-[76px] md:inline">Status</span>
+                  <span className="hidden w-[104px] md:inline">Stage</span>
+                  <span className="hidden w-[84px] md:inline">Reported</span>
+                  <span className="hidden w-10 md:inline" aria-hidden="true" />
                 </div>
                 <ul>
                   {bugs.map((bug, index) => {
@@ -868,19 +868,19 @@ export default async function BugsPage({
                           </span>
                         </Link>
                         </div>
-                        <span className="w-[92px] shrink-0 text-[13px] text-zk-text2">{typeName}</span>
-                        <span className="w-24 shrink-0">
+                        <span className="hidden w-[92px] shrink-0 text-[13px] text-zk-text2 md:inline">{typeName}</span>
+                        <span className="hidden w-24 shrink-0 md:inline">
                           <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-bold ${severityPillClass(bug.severity)}`}>
                             {severityLabels[bug.severity]}
                           </span>
                         </span>
-                        <span className="w-[76px] shrink-0">
+                        <span className="hidden w-[76px] shrink-0 md:inline">
                           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${statusPillClass(bug.status)}`}>
                             <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
                             {statusLabels[bug.status]}
                           </span>
                         </span>
-                        <span className="w-[104px] shrink-0">
+                        <span className="hidden w-[104px] shrink-0 md:inline">
                           {stage ? (
                             <span
                               title={intakeDetail(stage, bug.voteCount)}
@@ -893,13 +893,13 @@ export default async function BugsPage({
                             <span className="text-[13px] text-zk-muted">—</span>
                           )}
                         </span>
-                        <span className="w-[84px] shrink-0 text-[13px] text-zk-text2">
+                        <span className="hidden w-[84px] shrink-0 text-[13px] text-zk-text2 md:inline">
                           <RowAge
                             date={currentSort === "newest" ? bug.createdAt : bug.updatedAt}
                             sort={currentSort === "newest" ? "newest" : "updated"}
                           />
                         </span>
-                        <span className="flex w-10 shrink-0 items-center justify-end gap-2">
+                        <span className="hidden w-10 shrink-0 items-center justify-end gap-2 md:flex">
                           {bug.assignee ? (
                             <RowAssignee name={bug.assignee.name} image={bug.assignee.image} />
                           ) : null}
