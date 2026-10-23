@@ -129,14 +129,14 @@ describe("missingAwardEntry", () => {
       userId: "user-solver",
       bugId: "bug-1",
       role: "solver",
-      points: 2800,
+      points: 1200,
       sourceKey: "solver:bug-1:user-solver",
     });
   });
 
-  it("builds the canonical reporter award worth 350 points", () => {
+  it("builds the canonical reporter award worth 150 points", () => {
     const entry = missingAwardEntry(bugOn, "reporter");
-    expect(entry?.points).toBe(350);
+    expect(entry?.points).toBe(150);
     expect(entry?.sourceKey).toBe("reporter:bug-1:user-me");
   });
 
@@ -269,7 +269,7 @@ describe("grantMissingAward", () => {
         data: [
           expect.objectContaining({
             role: "solver",
-            points: 2800,
+            points: 1200,
             sourceKey: "solver:bug-1:user-solver",
           }),
         ],
@@ -302,7 +302,7 @@ describe("grantMissingAward", () => {
     expect(first).toEqual({ ok: true, awarded: true });
     expect(second).toEqual({ ok: true, awarded: false });
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ points: 2800 });
+    expect(rows[0]).toMatchObject({ points: 1200 });
   });
 
   it("refuses to resolve a dispute that is already resolved", async () => {
@@ -577,7 +577,7 @@ describe("creditMissingAwards", () => {
     expect(result.skipped).toEqual([{ number: 12, reason: "duplicate" }]);
     expect(raw.pointEntry.createMany.mock.calls[0][0].data[0]).toMatchObject({
       role: "reporter",
-      points: 350,
+      points: 150,
       sourceKey: "reporter:bug-269:user-me",
     });
   });

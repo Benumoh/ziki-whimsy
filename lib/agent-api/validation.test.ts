@@ -406,7 +406,7 @@ describe("confirmation: the two-reviewer rule (#433)", () => {
         userId: "tia",
         bugId: "bug1",
         role: "triager",
-        points: 70,
+        points: 30,
         sourceKey: "triager-clear:bug1:tia",
       },
       {
@@ -414,7 +414,7 @@ describe("confirmation: the two-reviewer rule (#433)", () => {
         userId: "rob",
         bugId: "bug1",
         role: "reviewer",
-        points: 210,
+        points: 90,
         sourceKey: "reviewer-confirm:bug1:rob",
       },
       {
@@ -422,7 +422,7 @@ describe("confirmation: the two-reviewer rule (#433)", () => {
         userId: "sam",
         bugId: "bug1",
         role: "reviewer",
-        points: 202,
+        points: 84,
         sourceKey: "reviewer-confirm:bug1:sam",
       },
       {
@@ -430,7 +430,7 @@ describe("confirmation: the two-reviewer rule (#433)", () => {
         userId: "ada",
         bugId: "bug1",
         role: "reporter",
-        points: 350,
+        points: 150,
         sourceKey: "reporter:bug1:ada",
       },
     ]);
@@ -442,7 +442,7 @@ describe("confirmation: the two-reviewer rule (#433)", () => {
     expect(db.pointEntry.createMany.mock.calls[4][0].data[0]).toMatchObject({
       userId: "tia",
       role: "reviewer",
-      points: 194,
+      points: 78,
       sourceKey: "reviewer-confirm:bug1:tia",
     });
   });
@@ -480,7 +480,7 @@ describe("confirmation: the two-reviewer rule (#433)", () => {
     expect(roles).not.toContain("reporter");
     expect(db.pointEntry.createMany.mock.calls[0][0].data[0]).toMatchObject({
       role: "triager",
-      points: 350,
+      points: 150,
       sourceKey: "duplicate-marker:bug1:tia",
     });
   });

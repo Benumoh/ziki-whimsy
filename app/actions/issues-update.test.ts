@@ -379,7 +379,7 @@ describe("solver points on resolve (#428)", () => {
         userId: ME,
         bugId: "bug1",
         role: "solver",
-        points: 1750,
+        points: 750,
         sourceKey: `solver:bug1:${ME}`,
       },
     ]);
@@ -387,7 +387,7 @@ describe("solver points on resolve (#428)", () => {
 
   it("uses the severity an admin sets in the same update", async () => {
     await run("admin", OTHER, { status: "resolved", severity: "critical" });
-    expect(awarded).toMatchObject([{ userId: OTHER, points: 4200 }]);
+    expect(awarded).toMatchObject([{ userId: OTHER, points: 1800 }]);
   });
 
   it("awards the new assignee when an admin assigns and resolves at once", async () => {

@@ -16,19 +16,19 @@ import {
 
 describe("point rules (#428)", () => {
   it("awards solver points by severity", () => {
-    expect(solverPoints("low")).toBe(1050);
-    expect(solverPoints("medium")).toBe(1750);
-    expect(solverPoints("high")).toBe(2800);
-    expect(solverPoints("critical")).toBe(4200);
+    expect(solverPoints("low")).toBe(450);
+    expect(solverPoints("medium")).toBe(750);
+    expect(solverPoints("high")).toBe(1200);
+    expect(solverPoints("critical")).toBe(1800);
   });
 
   it("has the reporter, reviewer and target numbers from the epic", () => {
-    expect(REPORTER_POINTS).toBe(350);
-    expect(REVIEWER_POINTS).toBe(700);
-    expect(CONFIRMATION_REVIEWER_POINTS).toBe(210);
-    expect(TRIAGER_CLEAR_POINTS).toBe(70);
-    expect(DUPLICATE_MARKER_POINTS).toBe(350);
-    expect(TARGET_POINTS).toBe(35_000);
+    expect(REPORTER_POINTS).toBe(150);
+    expect(REVIEWER_POINTS).toBe(300);
+    expect(CONFIRMATION_REVIEWER_POINTS).toBe(90);
+    expect(TRIAGER_CLEAR_POINTS).toBe(30);
+    expect(DUPLICATE_MARKER_POINTS).toBe(150);
+    expect(TARGET_POINTS).toBe(500);
   });
 
   it("pays every later reviewer less than the reviewer before them", () => {
@@ -50,7 +50,7 @@ describe("point rules (#428)", () => {
     expect(confirmationReviewerSourceKey("bug-1", "user-1")).not.toBe(pointSourceKey("reviewer", "bug-1", "user-1"));
   });
 
-  describe("progress toward 35000 points", () => {
+  describe("progress toward 500 points", () => {
     it("starts at zero", () => {
       expect(pointsProgress(0, 0)).toEqual({
         points: 0,
@@ -61,24 +61,24 @@ describe("point rules (#428)", () => {
     });
 
     it("reports partial progress", () => {
-      const progress = pointsProgress(17_500, 5);
+      const progress = pointsProgress(250, 5);
       expect(progress.pointsPercent).toBe(50);
       expect(progress.solvedTasks).toBe(5);
       expect(progress.targetMet).toBe(false);
     });
 
-    it("is met at 35000 points with no solved tasks", () => {
-      const progress = pointsProgress(35_000, 0);
+    it("is met at 500 points with no solved tasks", () => {
+      const progress = pointsProgress(500, 0);
       expect(progress.pointsPercent).toBe(100);
       expect(progress.targetMet).toBe(true);
     });
 
-    it("is not met below 35000 points", () => {
-      expect(pointsProgress(21_000, 20).targetMet).toBe(false);
+    it("is not met below 500 points", () => {
+      expect(pointsProgress(400, 20).targetMet).toBe(false);
     });
 
-    it("stays met above 35000 points", () => {
-      expect(pointsProgress(56_000, 25)).toMatchObject({ pointsPercent: 100, targetMet: true });
+    it("stays met above 500 points", () => {
+      expect(pointsProgress(800, 25)).toMatchObject({ pointsPercent: 100, targetMet: true });
     });
 
     it("never shows a negative percentage after a correction", () => {
