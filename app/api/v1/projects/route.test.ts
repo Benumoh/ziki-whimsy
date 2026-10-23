@@ -48,14 +48,14 @@ describe("agent project discovery (#607)", () => {
             heartbeatMinutes: 15, deliveryMinutes: 15, maxActiveClaims: 2,
             volunteerWindowSeconds: 120, autoMerge: true,
           }, openIssueCount: 3,
-          rewardRules: { guidelines: null, reporter: 350, reviewer: 700, solver: { critical: 4200, high: 2800, low: 1050, medium: 1750 } } },
+          rewardRules: { guidelines: null, reporter: 150, reviewer: 300, solver: { critical: 1800, high: 1200, low: 450, medium: 750 } } },
         { id: "project-api", slug: "api", name: "API", goal: null, repoUrl: null, stagingUrl: null,
           workflow: {
             confirmationsNeeded: 2, verdictsNeeded: 2, offerWindowSeconds: 60,
             heartbeatMinutes: 15, deliveryMinutes: 15, maxActiveClaims: 2,
             volunteerWindowSeconds: 120, autoMerge: true,
           }, openIssueCount: 0,
-          rewardRules: { guidelines: null, reporter: 350, reviewer: 700, solver: { critical: 4200, high: 2800, low: 1050, medium: 1750 } } },
+          rewardRules: { guidelines: null, reporter: 150, reviewer: 300, solver: { critical: 1800, high: 1200, low: 450, medium: 750 } } },
       ],
     });
     expect(db.project.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { tenantId: "tenant-a" } }));
