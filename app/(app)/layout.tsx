@@ -128,7 +128,7 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zk-bg lg:flex-row">
+    <div className="flex min-h-screen w-full min-w-0 max-w-full flex-col overflow-x-clip bg-zk-bg lg:flex-row">
       <SkipLink />
       <AppSidebar
         issueCount={issueCount}
@@ -159,7 +159,7 @@ export default async function AppLayout({
           /* Focusable so the skip link and the route announcer can move focus
              here; -1 keeps it out of the normal tab order. */
           tabIndex={-1}
-          className="flex-1 px-4 py-6 outline-none sm:px-6 sm:py-8"
+          className="min-w-0 flex-1 px-4 py-6 outline-none sm:px-6 sm:py-8"
         >
           {children}
         </main>

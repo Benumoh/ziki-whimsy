@@ -32,8 +32,9 @@ describe("IssueFilters (#132, #361)", () => {
     const { renderToStaticMarkup } = await import("react-dom/server");
 
     const html = renderToStaticMarkup(createElement(IssueFilters));
-    expect(html).toContain('placeholder="Search, or type a tag like Design (/)"');
+    expect(html).toContain('placeholder="Search, or type a tag like Design"');
     expect(html).toContain("<kbd");
+    expect(html).toContain(">/</kbd>");
   });
 
   it("omits keyboard shortcut hint and badge when shortcutsEnabled is false (#727)", async () => {
