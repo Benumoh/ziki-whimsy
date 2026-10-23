@@ -309,8 +309,8 @@ export function AppHeader({
   const activeWorkspace = workspaces.find((workspace) => workspace.id === activeTenantId) ?? workspaces[0];
 
   return (
-    <header className="z-40 border-b border-zk-border bg-zk-surface lg:sticky lg:top-0">
-      <div className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+    <header className="z-40 w-full min-w-0 max-w-full border-b border-zk-border bg-zk-surface lg:sticky lg:top-0">
+      <div className="flex w-full min-w-0 max-w-full flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
         <Link
           href="/issues/new"
           aria-current={onNewIssue ? "page" : undefined}
