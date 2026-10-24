@@ -20,7 +20,10 @@ import { AGENT_LEVEL_LABELS } from "@/lib/agents/levels";
 import { isAdmin, isSuperAdmin, type AppRole } from "@/lib/roles";
 import { Avatar } from "@/components/avatar";
 import { ThemeToggle, AccountThemeSelector } from "@/components/theme-toggle";
-import { pointsProgress, TARGET_POINTS } from "@/lib/points/rules";
+import { formatPoints, pointsProgress, TARGET_POINTS } from "@/lib/points/rules";
+import { recentNotificationsAction } from "@/app/actions/notifications";
+import { LocalTime } from "@/components/local-time";
+import { BASE_PATH } from "@/lib/base-path";
 
 const linkFocus =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-2";
@@ -112,26 +115,102 @@ function AlertIcon() {
 const iconButton =
   "inline-flex h-10 w-10 items-center justify-center rounded-full border border-zk-border bg-zk-surface text-zk-text hover:bg-zk-chip";
 
+/** In-place notification preview; opening the bell never marks alerts read (#615). */
 function NotificationsBell({ unreadCount, active }: { unreadCount: number; active: boolean }) {
-  const label = unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications";
+  const [open, setOpen] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [notifications, setNotifications] = useState<Awaited<ReturnType<typeof recentNotificationsAction>> | null>(null);
+  const [failed, setFailed] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDismiss(open, () => setOpen(false), containerRef, triggerRef);
+
+  useEffect(() => {
+    if (!open) return;
+    panelRef.current?.focus({ preventScroll: true });
+    let cancelled = false;
+    recentNotificationsAction().then(
+      (items) => { if (!cancelled) setNotifications(items); },
+      () => { if (!cancelled) setFailed(true); },
+    );
+    return () => { cancelled = true; };
+  }, [open, attempt]);
+
+  function loadPreview() {
+    setNotifications(null);
+    setFailed(false);
+  }
+  const label =
+    unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications";
   return (
-    <Link
-      href="/notifications"
-      aria-label={label}
-      aria-current={active ? "page" : undefined}
-      title={label}
-      className={`relative ${iconButton} ${linkFocus} ${active ? "border-electric-blue" : ""}`}
-    >
-      <BellIcon />
-      {unreadCount > 0 ? (
-        <span
-          aria-hidden="true"
-          className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-zk-surface bg-electric-blue-strong px-1 text-[11px] font-bold text-white"
+    <div ref={containerRef} className="flex items-center sm:relative" onBlur={(event) => {
+      if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false);
+    }}>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-expanded={open}
+        aria-controls="notification-preview"
+        onClick={() => { loadPreview(); setOpen((value) => !value); }}
+        aria-label={label}
+        title={label}
+        className={`relative ${iconButton} ${linkFocus} ${active ? "border-electric-blue" : ""}`}
+      >
+        <BellIcon />
+        {unreadCount > 0 ? (
+          <span
+            aria-hidden="true"
+            className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-zk-surface bg-electric-blue-strong px-1 text-[11px] font-bold text-white"
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        ) : null}
+      </button>
+      {open ? (
+        <div
+          ref={panelRef}
+          id="notification-preview"
+          role="region"
+          aria-label="Recent notifications"
+          tabIndex={-1}
+          className="absolute right-4 top-full z-50 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-zk-border bg-zk-surface text-zk-text shadow-xl focus:outline-none sm:right-0"
         >
-          {unreadCount > 99 ? "99+" : unreadCount}
-        </span>
+          <h2 className="border-b border-zk-border px-4 py-3 text-sm font-semibold">Notifications</h2>
+          <div className="max-h-[min(26rem,calc(100dvh-11rem))] overflow-y-auto overscroll-contain">
+            {failed ? (
+              <div className="p-4 text-sm">
+                <p role="alert">Could not load notifications.</p>
+                <button type="button" className={`mt-2 text-zk-accent hover:underline ${linkFocus}`} onClick={() => { loadPreview(); setAttempt((value) => value + 1); }}>Try again</button>
+              </div>
+            ) : notifications === null ? (
+              <p role="status" className="p-4 text-sm text-zk-muted">Loading notifications...</p>
+            ) : notifications.length === 0 ? (
+              <p role="status" className="p-4 text-sm text-zk-muted">No notifications yet.</p>
+            ) : (
+              <ul className="divide-y divide-zk-divider">
+                {notifications.map((notification) => (
+                  <li key={notification.id}>
+                    {/* Plain links avoid prefetching the route that marks an alert read. */}
+                    <a href={`${BASE_PATH}/notifications/${notification.id}`} className={`flex items-start gap-3 px-4 py-3 text-sm hover:bg-zk-chip ${linkFocus} ${!notification.readAt ? "bg-zk-tint" : ""}`}>
+                      <span aria-hidden="true" className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${!notification.readAt ? "bg-electric-blue" : "bg-transparent"}`} />
+                      <span className="min-w-0 flex-1">
+                        <span className={`block break-words ${!notification.readAt ? "font-medium text-zk-text" : "text-zk-text2"}`}>
+                          {!notification.readAt ? <span className="sr-only">Unread: </span> : null}
+                          {notification.title}
+                        </span>
+                        <LocalTime date={notification.createdAt} className="mt-1 block text-xs text-zk-muted" />
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <Link href="/notifications" onClick={() => setOpen(false)} className={`block border-t border-zk-border px-4 py-3 text-sm font-medium text-zk-accent hover:bg-zk-chip ${linkFocus}`}>View all notifications</Link>
+        </div>
       ) : null}
-    </Link>
+    </div>
   );
 }
 
@@ -231,6 +310,7 @@ function PointsChip({
 }) {
   if (!userId) return null;
   const progress = pointsProgress(points, solvedTasks, targetPoints);
+  const shown = formatPoints(points);
   return (
     <Link
       href={`/users/${userId}`}
@@ -239,7 +319,7 @@ function PointsChip({
       <span className="text-electric-blue">
         <TrophyIcon />
       </span>
-      <span className="font-extrabold tabular-nums">{points}</span>
+      <span className="font-extrabold tabular-nums">{shown}</span>
       <span className="text-zk-muted">pts</span>
       <span className="sr-only">
         {" "}
@@ -309,7 +389,9 @@ export function AppHeader({
   const activeWorkspace = workspaces.find((workspace) => workspace.id === activeTenantId) ?? workspaces[0];
 
   return (
-    <header className="z-40 w-full min-w-0 max-w-full border-b border-zk-border bg-zk-surface lg:sticky lg:top-0">
+    // Sticky only from lg: on phones and tablets the toolbar wraps onto rows,
+    // and a header that tall pinned to the top covers the page under it.
+    <header className="relative z-40 w-full min-w-0 max-w-full border-b border-zk-border bg-zk-surface lg:sticky lg:top-0">
       <div className="flex w-full min-w-0 max-w-full flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
         <Link
           href="/issues/new"
@@ -320,7 +402,11 @@ export function AppHeader({
           New issue
         </Link>
 
-        <div className="ml-auto flex min-w-0 max-w-full flex-1 basis-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
+        {/* Phones and tablets: min-w-0 lets the group narrow so its flex-wrap
+            breaks the chips onto rows (no sideways scroll at 360px or 768px).
+            From lg up it keeps shrink-0 so the account controls are never
+            squeezed. */}
+        <div className="ml-auto flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2 sm:gap-3 lg:shrink-0">
           <PointsChip
             points={points}
             solvedTasks={solvedTasks}
@@ -346,7 +432,7 @@ export function AppHeader({
 
           <AgentsMenu pathname={pathname} agents={agents} />
           <ThemeToggle />
-          <NotificationsBell unreadCount={unreadCount} active={isNavItemActive(pathname, "/notifications")} />
+          <NotificationsBell key={`${userId}:${activeTenantId}:${pathname}`} unreadCount={unreadCount} active={isNavItemActive(pathname, "/notifications")} />
 
           <div ref={accountRef} className="relative">
             <button

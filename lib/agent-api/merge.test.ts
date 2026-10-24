@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { REVIEWER_POINTS, reviewerPointsAt } from "@/lib/points/rules";
 
 type VerdictRow = {
   id: string;
@@ -54,6 +55,7 @@ function bugRow(overrides: Record<string, unknown> = {}) {
     beneficiaryUserId: "ada",
     createdByAgentId: null,
     createdByAgent: null,
+    project: { repoUrl: "https://github.com/Zedu-Endor/issue-tracker", githubInstallationId: "app-1" },
     claims: [{
       status: "active",
       releasedAt: null,
@@ -271,6 +273,47 @@ describe("acceptFix: the gate (#434)", () => {
     expect(db.pointEntry.createMany).not.toHaveBeenCalled();
   });
 
+  it("refuses acceptance when the linked pull request was closed without being merged (#642)", async () => {
+    confirmWith("rob", "sam");
+    verdict("r1", "rob");
+    verdict("r2", "sam");
+    const client = {
+      getPullRequest: vi.fn(async () => ({ state: "closed", merged: false, mergeable: false, headSha: "sha1" })),
+      checksGreen: vi.fn(async () => true),
+      mergePullRequest: vi.fn(),
+    };
+    const result = await acceptFix(merger("m1", "mo", "merger"), "bug1", { client });
+    expect(result).toMatchObject({
+      status: 409,
+      error: "not_ready",
+      missing: "pull_request",
+      message: "That pull request is closed without being merged.",
+    });
+    expect(db.bug.update).not.toHaveBeenCalled();
+    expect(db.pointEntry.createMany).not.toHaveBeenCalled();
+  });
+
+  it("refuses acceptance when the pull request is not in the project's repository (#642)", async () => {
+    confirmWith("rob", "sam");
+    verdict("r1", "rob");
+    verdict("r2", "sam");
+    db.bug.findFirst.mockResolvedValue(
+      bugRow({
+        pullRequestUrl: "https://github.com/someone-else/repo/pull/1",
+        project: { repoUrl: "https://github.com/zedu/web", githubInstallationId: "123" },
+      }),
+    );
+    const result = await acceptFix(merger("m1", "mo", "merger"), "bug1");
+    expect(result).toMatchObject({
+      status: 409,
+      error: "not_ready",
+      missing: "pull_request",
+      message: "That pull request is not in this project's repository.",
+    });
+    expect(db.bug.update).not.toHaveBeenCalled();
+    expect(db.pointEntry.createMany).not.toHaveBeenCalled();
+  });
+
   it("names the missing condition: a redesign is waiting for a person", async () => {
     redesign.assertRedesignOpen.mockRejectedValue(new IssueApiError(409, "This redesign is waiting for a person."));
     expect(await acceptFix(merger("m1", "mo", "merger"), "bug1")).toMatchObject({ status: 409, missing: "redesign" });
@@ -437,9 +480,11 @@ describe("acceptFix: a successful accept (#434)", () => {
     const awards = db.pointEntry.createMany.mock.calls.map((call) => call[0].data[0]);
     const reviewerAwards = awards.filter((a) => a.role === "reviewer");
     expect(reviewerAwards).toHaveLength(3);
-    expect(reviewerAwards[0]).toMatchObject({ userId: "rob", points: 300, sourceKey: "reviewer:bug1:rob" });
-    expect(reviewerAwards[1]).toMatchObject({ userId: "sam", points: 292, sourceKey: "reviewer:bug1:sam" });
-    expect(reviewerAwards[2]).toMatchObject({ userId: "tia", points: 284, sourceKey: "reviewer:bug1:tia" });
+    expect(reviewerAwards[0]).toMatchObject({ userId: "rob", points: reviewerPointsAt(0, REVIEWER_POINTS), sourceKey: "reviewer:bug1:rob" });
+    expect(reviewerAwards[1]).toMatchObject({ userId: "sam", points: reviewerPointsAt(1, REVIEWER_POINTS), sourceKey: "reviewer:bug1:sam" });
+    expect(reviewerAwards[2]).toMatchObject({ userId: "tia", points: reviewerPointsAt(2, REVIEWER_POINTS), sourceKey: "reviewer:bug1:tia" });
+    expect(reviewerAwards[2].points).toBeLessThan(reviewerAwards[1].points);
+    expect(reviewerAwards[1].points).toBeLessThan(reviewerAwards[0].points);
   });
 
   it("does not count or pay a verdict credited to the active claim beneficiary (#495)", async () => {
