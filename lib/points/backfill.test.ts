@@ -52,7 +52,7 @@ describe("backfill points (#435)", () => {
           userId: "solver-1",
           bugId: "bug-1",
           role: "solver",
-          points: 25,
+          points: 750,
           sourceKey: "solver:bug-1:solver-1",
         },
         {
@@ -60,7 +60,7 @@ describe("backfill points (#435)", () => {
           userId: "reporter-1",
           bugId: "bug-1",
           role: "reporter",
-          points: 5,
+          points: 150,
           sourceKey: "reporter:bug-1:reporter-1",
         },
       ]);
@@ -82,7 +82,7 @@ describe("backfill points (#435)", () => {
     it("counts closed like resolved, by the issue's severity", () => {
       expect(backfillEntries(bug({ status: "closed", severity: "critical" }))[0]).toMatchObject({
         role: "solver",
-        points: 60,
+        points: 1800,
       });
     });
 
@@ -134,7 +134,7 @@ describe("backfill points (#435)", () => {
           userId: "user-bene",
           bugId: "bug-1",
           role: "reporter",
-          points: 5,
+          points: 150,
           sourceKey: "reporter:bug-1:user-bene",
         },
       ]);
@@ -155,7 +155,7 @@ describe("backfill points (#435)", () => {
         assigneeId: null,
       });
       expect(backfillEntries(confirmed, { cutoffDate: cutoff })).toMatchObject([
-        { role: "reporter", points: 5 },
+        { role: "reporter", points: 150 },
       ]);
 
       const prePlatform = bug({
@@ -164,7 +164,7 @@ describe("backfill points (#435)", () => {
         assigneeId: null,
       });
       expect(backfillEntries(prePlatform, { cutoffDate: cutoff })).toMatchObject([
-        { role: "reporter", points: 5 },
+        { role: "reporter", points: 150 },
       ]);
     });
   });
@@ -175,7 +175,7 @@ describe("backfill points (#435)", () => {
 
     const result = await backfillPoints(db, { dryRun: true, onLine: (l) => lines.push(`${l.role}:${l.points}`) });
 
-    expect(lines).toEqual(["solver:25", "reporter:5"]);
+    expect(lines).toEqual(["solver:750", "reporter:150"]);
     expect(result).toEqual({ bugs: 1, planned: 2, written: 0, existing: 0 });
     expect(ledger).toEqual([]);
   });
@@ -282,10 +282,10 @@ describe("standingValidationAwards (#539)", () => {
     ]);
     const entries = await standingValidationAwards(db, "bug-1");
     expect(entries).toContainEqual({
-      tenantId: "tenant-zedu", userId: "u3", bugId: "bug-1", role: "triager", points: 1, sourceKey: "triager-clear:bug-1:u3",
+      tenantId: "tenant-zedu", userId: "u3", bugId: "bug-1", role: "triager", points: 30, sourceKey: "triager-clear:bug-1:u3",
     });
     expect(entries).toContainEqual({
-      tenantId: "tenant-zedu", userId: "u5", bugId: "bug-1", role: "triager", points: 5, sourceKey: "duplicate-marker:bug-1:u5",
+      tenantId: "tenant-zedu", userId: "u5", bugId: "bug-1", role: "triager", points: 150, sourceKey: "duplicate-marker:bug-1:u5",
     });
     expect(entries.filter((e) => e.userId === "u3")).toHaveLength(1);
     expect(entries.some((e) => e.userId === "u4")).toBe(false);

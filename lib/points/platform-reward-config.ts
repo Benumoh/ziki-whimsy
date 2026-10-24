@@ -3,6 +3,8 @@ import {
   CONFIRMATION_REVIEWER_POINTS,
   DISPATCHER_POINTS,
   DUPLICATE_MARKER_POINTS,
+  POINT_AWARD_MAX,
+  POINT_TARGET_MAX,
   REPORTER_POINTS,
   REVIEWER_POINTS,
   SOLVER_POINTS,
@@ -31,24 +33,24 @@ export const platformRewardConfigSchema = z
   .object({
     solver: z
       .object({
-        low: z.coerce.number().int().min(0).max(10000),
-        medium: z.coerce.number().int().min(0).max(10000),
-        high: z.coerce.number().int().min(0).max(10000),
-        critical: z.coerce.number().int().min(0).max(10000),
+        low: z.coerce.number().int().min(0).max(POINT_AWARD_MAX),
+        medium: z.coerce.number().int().min(0).max(POINT_AWARD_MAX),
+        high: z.coerce.number().int().min(0).max(POINT_AWARD_MAX),
+        critical: z.coerce.number().int().min(0).max(POINT_AWARD_MAX),
       })
       .default({ ...hardCodedValues.solver }),
-    reporter: z.coerce.number().int().min(0).max(10000).default(REPORTER_POINTS),
-    reviewer: z.coerce.number().int().min(0).max(10000).default(REVIEWER_POINTS),
+    reporter: z.coerce.number().int().min(0).max(POINT_AWARD_MAX).default(REPORTER_POINTS),
+    reviewer: z.coerce.number().int().min(0).max(POINT_AWARD_MAX).default(REVIEWER_POINTS),
     confirmationReviewer: z.coerce
       .number()
       .int()
       .min(0)
-      .max(10000)
+      .max(POINT_AWARD_MAX)
       .default(CONFIRMATION_REVIEWER_POINTS),
-    triagerClear: z.coerce.number().int().min(0).max(10000).default(TRIAGER_CLEAR_POINTS),
-    duplicateMarker: z.coerce.number().int().min(0).max(10000).default(DUPLICATE_MARKER_POINTS),
-    dispatcher: z.coerce.number().int().min(0).max(10000).default(DISPATCHER_POINTS),
-    target: z.coerce.number().int().min(1).max(1_000_000).default(TARGET_POINTS),
+    triagerClear: z.coerce.number().int().min(0).max(POINT_AWARD_MAX).default(TRIAGER_CLEAR_POINTS),
+    duplicateMarker: z.coerce.number().int().min(0).max(POINT_AWARD_MAX).default(DUPLICATE_MARKER_POINTS),
+    dispatcher: z.coerce.number().int().min(0).max(POINT_AWARD_MAX).default(DISPATCHER_POINTS),
+    target: z.coerce.number().int().min(1).max(POINT_TARGET_MAX).default(TARGET_POINTS),
     guidelines: z.string().trim().max(2000).optional().nullable().default(null),
   })
   .default({ ...hardCodedValues });

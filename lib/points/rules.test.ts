@@ -19,18 +19,18 @@ import {
 
 describe("point rules (#428)", () => {
   it("awards solver points by severity", () => {
-    expect(solverPoints("low")).toBe(15);
-    expect(solverPoints("medium")).toBe(25);
-    expect(solverPoints("high")).toBe(40);
-    expect(solverPoints("critical")).toBe(60);
+    expect(solverPoints("low")).toBe(450);
+    expect(solverPoints("medium")).toBe(750);
+    expect(solverPoints("high")).toBe(1200);
+    expect(solverPoints("critical")).toBe(1800);
   });
 
   it("has the reporter, reviewer and target numbers from the epic", () => {
-    expect(REPORTER_POINTS).toBe(5);
-    expect(REVIEWER_POINTS).toBe(10);
-    expect(CONFIRMATION_REVIEWER_POINTS).toBe(3);
-    expect(TRIAGER_CLEAR_POINTS).toBe(1);
-    expect(DUPLICATE_MARKER_POINTS).toBe(5);
+    expect(REPORTER_POINTS).toBe(150);
+    expect(REVIEWER_POINTS).toBe(300);
+    expect(CONFIRMATION_REVIEWER_POINTS).toBe(90);
+    expect(TRIAGER_CLEAR_POINTS).toBe(30);
+    expect(DUPLICATE_MARKER_POINTS).toBe(150);
     expect(TARGET_POINTS).toBe(500);
   });
 
@@ -43,7 +43,7 @@ describe("point rules (#428)", () => {
       10, 9, 8.1, 7.29, 6.56, 5.9,
     ]);
     expect([0, 1, 2, 3].map((index) => reviewerPointsAt(index, CONFIRMATION_REVIEWER_POINTS))).toEqual([
-      3, 2.7, 2.43, 2.19,
+      90, 81, 72.9, 65.61,
     ]);
     expect(diminishedReviewerPoints(1)).toBe(0.9);
     expect(diminishedReviewerPoints(0.05)).toBe(0.04);
@@ -103,7 +103,7 @@ describe("point rules (#428)", () => {
     });
 
     it("is not met below 500 points", () => {
-      expect(pointsProgress(300, 20).targetMet).toBe(false);
+      expect(pointsProgress(400, 20).targetMet).toBe(false);
     });
 
     it("stays met above 500 points", () => {
