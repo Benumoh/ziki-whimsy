@@ -559,7 +559,7 @@ describe("agent comments", () => {
     expect(db.comment.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ metadata }) }));
   });
 
-  it("attaches a pull request the assignee mentions in a comment", async () => {
+  it("does not attach when the assignee merely mentions a pull request in prose (#636)", async () => {
     const pr = "https://github.com/Zedu-Endor/issue-tracker/pull/1230";
     db.bug.findFirst.mockResolvedValue({
       ...issue,
@@ -568,11 +568,33 @@ describe("agent comments", () => {
       pullRequestUrl: null,
       proofLinks: [],
     });
-    expect((await comment(request("POST", { body: `Implementation ready: ${pr}` }), context)).status).toBe(201);
+    const res = await comment(request("POST", { body: `This is similar to PR ${pr}` }), context);
+    expect(res.status).toBe(201);
+    expect(db.bug.update).toHaveBeenCalledWith({
+      where: { id: issue.id },
+      data: { updatedAt: expect.any(Date) },
+    });
+    const json = await res.json();
+    expect(json.linkedPullRequestUrl).toBeUndefined();
+  });
+
+  it("attaches a pull request when the assignee explicitly delivers it (#636)", async () => {
+    const pr = "https://github.com/Zedu-Endor/issue-tracker/pull/1230";
+    db.bug.findFirst.mockResolvedValue({
+      ...issue,
+      reporterId: "reporter-a",
+      assigneeId: "owner-a",
+      pullRequestUrl: null,
+      proofLinks: [],
+    });
+    const res = await comment(request("POST", { body: `Implementation ready: ${pr}`, type: "delivery" }), context);
+    expect(res.status).toBe(201);
     expect(db.bug.update).toHaveBeenCalledWith({
       where: { id: issue.id },
       data: expect.objectContaining({ pullRequestUrl: pr, proofLinks: [pr] }),
     });
+    const json = await res.json();
+    expect(json.linkedPullRequestUrl).toBe(pr);
   });
 
   it("rejects invalid confidence before writing a comment", async () => {
@@ -818,6 +840,26 @@ describe("issue read confirmation", () => {
     expect(body.voteThreshold).toBe(3);
     expect(body.intake).toBe("idea");
     expect(db.bug.findFirst.mock.calls.at(-1)?.[0]?.select.voteCount).toBe(true);
+  });
+
+  it("shows the linked fix and the commit a verdict would test (#544)", async () => {
+    const pullRequestUrl = "https://github.com/Zedu-Endor/issue-tracker/pull/1235";
+    const pullRequestHeadSha = "77e781e7c6d32b1fb25493e4250092d0bf76cb3c";
+    db.bug.findFirst.mockResolvedValue({ ...issue, status: "open", pullRequestUrl, pullRequestHeadSha });
+    db.issueValidation.findMany.mockResolvedValue([]);
+    const body = (await readIssue()) as unknown as { pullRequestUrl: string | null; pullRequestHeadSha: string | null };
+    expect(body.pullRequestUrl).toBe(pullRequestUrl);
+    expect(body.pullRequestHeadSha).toBe(pullRequestHeadSha);
+    expect(db.bug.findFirst.mock.calls.at(-1)?.[0]?.select.pullRequestUrl).toBe(true);
+    expect(db.bug.findFirst.mock.calls.at(-1)?.[0]?.select.pullRequestHeadSha).toBe(true);
+  });
+
+  it("reports an unlinked fix as null rather than omitting it (#544)", async () => {
+    db.bug.findFirst.mockResolvedValue({ ...issue, status: "open", pullRequestUrl: null, pullRequestHeadSha: null });
+    db.issueValidation.findMany.mockResolvedValue([]);
+    const body = (await readIssue()) as unknown as Record<string, unknown>;
+    expect(body).toHaveProperty("pullRequestUrl", null);
+    expect(body).toHaveProperty("pullRequestHeadSha", null);
   });
 
   it("does not confirm when both accepts belong to the same owner", async () => {

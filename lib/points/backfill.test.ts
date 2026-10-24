@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { backfillEntries, backfillPoints, parseBackfillArgs, type HistoricalBug } from "./backfill";
 import { standingValidationAwards } from "@/lib/agent-api/validation";
+import { CONFIRMATION_REVIEWER_POINTS, reviewerPointsAt } from "./rules";
 
 const bug = (overrides: Partial<HistoricalBug>): HistoricalBug => ({
   id: "bug-1",
@@ -249,13 +250,13 @@ describe("standingValidationAwards (#539)", () => {
     agent: { id: `a-${userId}`, ownerUserId: userId, level },
   });
 
-  function dbWith(validations: ReturnType<typeof val>[]) {
+  function dbWith(validations: ReturnType<typeof val>[], bugOverrides: Record<string, unknown> = {}) {
     const match = (where: { kind?: string; verdict?: string }) =>
       validations.filter(
         (v) => (!where.kind || v.kind === where.kind) && (!where.verdict || v.verdict === where.verdict),
       );
     return {
-      bug: { findUnique: async () => loadedBug },
+      bug: { findUnique: async () => ({ ...loadedBug, ...bugOverrides }) },
       issueValidation: {
         findMany: async ({ where }: { where: { kind?: string; verdict?: string } }) => match(where),
         count: async ({ where }: { where: { kind?: string; verdict?: string } }) => match(where).length,
@@ -267,8 +268,8 @@ describe("standingValidationAwards (#539)", () => {
   it("pays counted real accepts at the diminishing reviewer rate", async () => {
     const db = dbWith([val("real", "accept", "u1"), val("real", "accept", "u2")]);
     expect(await standingValidationAwards(db, "bug-1")).toEqual([
-      { tenantId: "tenant-zedu", userId: "u1", bugId: "bug-1", role: "reviewer", points: 90, sourceKey: "reviewer-confirm:bug-1:u1" },
-      { tenantId: "tenant-zedu", userId: "u2", bugId: "bug-1", role: "reviewer", points: 84, sourceKey: "reviewer-confirm:bug-1:u2" },
+      { tenantId: "tenant-zedu", userId: "u1", bugId: "bug-1", role: "reviewer", points: reviewerPointsAt(0, CONFIRMATION_REVIEWER_POINTS), sourceKey: "reviewer-confirm:bug-1:u1" },
+      { tenantId: "tenant-zedu", userId: "u2", bugId: "bug-1", role: "reviewer", points: reviewerPointsAt(1, CONFIRMATION_REVIEWER_POINTS), sourceKey: "reviewer-confirm:bug-1:u2" },
     ]);
   });
 
@@ -294,6 +295,27 @@ describe("standingValidationAwards (#539)", () => {
     const db = dbWith([val("real", "accept", "u1"), val("duplicate", "accept", "u5", "triager")]);
     const entries = await standingValidationAwards(db, "bug-1");
     expect(entries.map((e) => e.sourceKey)).toEqual(["duplicate-marker:bug-1:u5"]);
+  });
+
+  it.each(["reject", "accept"])("keeps a standing duplicate %s award after its triager later becomes the solver (#579)", async (verdict) => {
+    const validation = val("duplicate", verdict, "u3", "triager");
+    const expected = await standingValidationAwards(dbWith([validation]), "bug-1");
+    expect(expected).toHaveLength(1);
+    const claimedDb = dbWith([validation], {
+      status: "in_progress",
+      assigneeId: "u3",
+      claims: [{ status: "active", releasedAt: null, beneficiaryUserId: "u3", agent: { ownerUserId: "u3" } }],
+    });
+    expect(await standingValidationAwards(claimedDb, "bug-1")).toEqual(expected);
+  });
+
+  it.each(["reject", "accept"])("still excludes a duplicate %s award credited to the reporter (#579)", async (verdict) => {
+    const validation = {
+      ...val("duplicate", verdict, "reporter-1", "triager"),
+      agent: { id: "a-independent-triager", ownerUserId: "independent-triager", level: "triager" },
+    };
+    const db = dbWith([validation]);
+    expect(await standingValidationAwards(db, "bug-1")).toEqual([]);
   });
 
   it("returns nothing when the db lacks the validation delegates (test doubles)", async () => {

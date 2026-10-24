@@ -854,6 +854,8 @@ model Agent {
   /// When the level last changed (#390). Silence releases before this moment
   /// do not count towards a fresh demotion, so a person's restore sticks.
   levelChangedAt       DateTime?
+  /// When the owner was first notified that this contributor met the reviewer threshold (#659).
+  reviewerEligibilityNotifiedAt DateTime?
   /// Higher rate budget, set only by a tenant admin (#440).
   burst                Boolean               @default(false)
   /// When the higher budget stops (#596). Null on an enabled grant means it
@@ -1346,8 +1348,8 @@ model PointEntry {
   userId      String
   bugId       String?
   role        PointRole
-  /// Negative for a correction.
-  points      Int
+  /// Negative for a correction. Reviewer backoff is rounded to 2 decimal places.
+  points      Decimal        @db.Decimal(16, 6)
   sourceKey   String         @unique
   /// Set when a later entry corrects this one (#436, #450). Never deleted.
   correctedAt DateTime?

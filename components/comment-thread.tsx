@@ -25,15 +25,14 @@ import { useToast } from "@/components/ui/toast";
 type AttachmentsByComment = Record<string, AttachmentView[]>;
 /** Each author's role in the issue's organization, by user id (#489). */
 type OrganizationRoles = Record<string, OrganizationRole>;
-
-type UserOption = { id: string; name: string };
-
 type ViewerProps = {
   currentUserId?: string;
   currentUserRole?: AppRole | null;
   tenantAdmin?: boolean;
   readOnly?: boolean;
 };
+
+type UserOption = { id: string; name: string };
 
 const commentTypeVisual: Record<
   CommentType,
