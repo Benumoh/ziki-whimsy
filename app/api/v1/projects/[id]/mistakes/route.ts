@@ -2,7 +2,6 @@ import { createMethodNotAllowed, createOptions } from "@/lib/agent-api/http-erro
 import { NextResponse, type NextRequest } from "next/server";
 import { agentIssueRequest, issueJson } from "@/lib/agent-api/issues";
 import { listProjectMistakes, recordMistake, mistakeCategorySchema } from "@/lib/agent-api/mistakes";
-import { hasLevel } from "@/lib/agents/levels";
 
 export const runtime = "nodejs";
 

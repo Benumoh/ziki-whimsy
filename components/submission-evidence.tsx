@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 export type SubmissionEvidenceProps = {
   screenshots?: string[];
   testResults?: string | Record<string, unknown> | null;

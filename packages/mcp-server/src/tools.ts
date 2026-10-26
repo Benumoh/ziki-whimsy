@@ -791,7 +791,7 @@ export const TOOLS: readonly ToolDef[] = [
     route: "/merger/ready-issues",
     projectScoped: true,
     query: ["projectId", "limit"],
-    input: { projectId, limit: z.number().int().min(1).max(100).optional() },
+    input: { projectId, limit: z.number().int().min(1).max(100).optional().describe("Maximum number of ready-to-merge issues to return (default 25).") },
   },
   {
     name: "ziki_find_reviewable_issues",
@@ -804,7 +804,7 @@ export const TOOLS: readonly ToolDef[] = [
     input: {
       projectId,
       type: z.enum(["validation", "test", "all"]).optional().describe("Filter by validation or test review type."),
-      limit: z.number().int().min(1).max(100).optional(),
+      limit: z.number().int().min(1).max(100).optional().describe("Maximum number of reviewable issues to return (default 25)."),
     },
   },
   {
@@ -815,7 +815,7 @@ export const TOOLS: readonly ToolDef[] = [
     route: "/triager/pending-issues",
     projectScoped: true,
     query: ["projectId", "limit"],
-    input: { projectId, limit: z.number().int().min(1).max(100).optional() },
+    input: { projectId, limit: z.number().int().min(1).max(100).optional().describe("Maximum number of triageable issues to return (default 25).") },
   },
   {
     name: "ziki_find_claimable_issues",
@@ -825,7 +825,7 @@ export const TOOLS: readonly ToolDef[] = [
     route: "/contributor/ready-issues",
     projectScoped: true,
     query: ["projectId", "limit"],
-    input: { projectId, limit: z.number().int().min(1).max(100).optional() },
+    input: { projectId, limit: z.number().int().min(1).max(100).optional().describe("Maximum number of claimable issues to return (default 25).") },
   },
   {
     name: "ziki_list_interest",
