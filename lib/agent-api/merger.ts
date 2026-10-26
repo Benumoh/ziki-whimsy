@@ -12,6 +12,7 @@ export type ReadyToMergeIssue = {
   projectId: string;
   pullRequestUrl: string;
   pullRequestHeadSha: string | null;
+  reviewStatus: string | null;
   claim: {
     agentId: string;
     beneficiaryUserId: string;
@@ -38,6 +39,7 @@ export async function findReadyToMergeIssues(
       projectId,
       isDeleted: false,
       status: { in: ["open", "in_progress"] },
+      reviewStatus: { not: "rejected" },
       pullRequestUrl: { not: null },
       claims: {
         some: {
@@ -55,6 +57,7 @@ export async function findReadyToMergeIssues(
       projectId: true,
       pullRequestUrl: true,
       pullRequestHeadSha: true,
+      reviewStatus: true,
       reporterId: true,
       beneficiaryUserId: true,
       createdByAgentId: true,
@@ -123,6 +126,7 @@ export async function findReadyToMergeIssues(
       projectId: bug.projectId,
       pullRequestUrl: bug.pullRequestUrl!,
       pullRequestHeadSha: bug.pullRequestHeadSha,
+      reviewStatus: bug.reviewStatus,
       claim: claim ? { agentId: claim.agentId, beneficiaryUserId: claim.beneficiaryUserId } : null,
       verdictsCount: owners.size,
       createdAt: bug.createdAt,

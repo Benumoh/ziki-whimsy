@@ -18,12 +18,14 @@ import { assertRedesignOpen } from "@/lib/redesigns";
 import { statusChangedSummary, commentedSummary, commentPreview } from "@/lib/activity-log";
 import { workflowFor } from "@/lib/workflow";
 import {
+  clientForInstallation,
   isPullRequestClosedUnmerged,
   parseGitHubRepoUrl,
   parsePullRequestUrl,
   sameRepo,
   type GitHubClient,
 } from "@/lib/github/merge-pr";
+import { recordMistake, type RecordMistakeInput } from "@/lib/agent-api/mistakes";
 
 /**
  * A merger accepting a fix (#434). The gate: the issue is confirmed, no
@@ -88,7 +90,7 @@ export type AcceptFixResult =
   | {
       status: 409;
       error: "not_ready";
-      missing: "already_accepted" | "redesign" | "confirmation" | "verdicts" | "claim" | "pull_request";
+      missing: "already_accepted" | "redesign" | "confirmation" | "verdicts" | "claim" | "pull_request" | "deployment_verification";
       message: string;
     };
 
@@ -99,6 +101,11 @@ export type AcceptFixDeps = {
 export type AcceptFixOptions = {
   verdict?: "accept" | "reject";
   notes?: string;
+  mistake?: Partial<RecordMistakeInput> & {
+    title: string;
+    antiPattern: string;
+    remediation: string;
+  };
 };
 
 export async function executeAdminMerge(
@@ -132,6 +139,10 @@ export async function acceptFix(
   if (options.verdict === "reject") {
     const rejectNotes = options.notes?.trim() || "Fix rejected by merger agent.";
     await prisma.$transaction(async (tx) => {
+      await tx.bug.update({
+        where: { id: bug.id },
+        data: { reviewStatus: "rejected" },
+      });
       const comment = await tx.comment.create({
         data: {
           bugId: bug.id,
@@ -148,16 +159,28 @@ export async function acceptFix(
           actorId: agent.ownerId,
           type: "commented",
           summary: commentedSummary(rejectNotes),
-          metadata: { commentId: comment.id, commentPreview: commentPreview(rejectNotes), rejected: true },
+          metadata: { commentId: comment.id, commentPreview: commentPreview(rejectNotes), rejected: true, reviewStatus: "rejected" },
         },
       });
       await publish(tx, {
         tenantId: bug.tenantId,
         type: "issue.updated",
-        payload: { issueId: bug.id, rejected: true, notes: rejectNotes },
+        payload: { issueId: bug.id, rejected: true, reviewStatus: "rejected", notes: rejectNotes },
         actorAgentId: agent.agentId,
         bugId: bug.id,
       });
+
+      if (options.mistake) {
+        await recordMistake(
+          agent,
+          bug.projectId,
+          {
+            ...options.mistake,
+            bugId: bug.id,
+          },
+          tx,
+        );
+      }
     });
     return { status: 200, accepted: false, notes: rejectNotes };
   }
@@ -290,6 +313,10 @@ export async function acceptFix(
 
     if (!isAdminMerge) {
       // Merger role: Accepts fix, marks ready to merge without resolving or awarding points
+      await tx.bug.update({
+        where: { id: bug.id },
+        data: { reviewStatus: "ready_to_merge" },
+      });
       const acceptCommentBody = "Fix accepted by merger agent. Status changed to ready to merge.";
       const acceptComment = await tx.comment.create({
         data: {
@@ -320,6 +347,7 @@ export async function acceptFix(
           pullRequestUrl: bug.pullRequestUrl,
           headSha: acceptedHeadSha,
           readyToMerge: true,
+          reviewStatus: "ready_to_merge",
         },
         { bugId: bug.id, db: tx },
       );
@@ -333,6 +361,7 @@ export async function acceptFix(
           pullRequestUrl: bug.pullRequestUrl,
           headSha: acceptedHeadSha,
           readyToMerge: true,
+          reviewStatus: "ready_to_merge",
         },
         actorAgentId: agent.agentId,
         bugId: bug.id,
@@ -348,7 +377,28 @@ export async function acceptFix(
     }
 
     // Admin merger role: Finalizes resolution, awards points, and releases claim
-    await tx.bug.update({ where: { id: bug.id }, data: { status: "resolved" } });
+    if (ref && acceptedHeadSha) {
+      const hasAppConfig = Boolean(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY);
+      const ghClient = deps.client ?? (hasAppConfig ? clientForInstallation(bug.project?.githubInstallationId) : null);
+      if (ghClient) {
+        let green = false;
+        try {
+          green = await ghClient.checksGreen(ref, acceptedHeadSha);
+        } catch {
+          green = false;
+        }
+        if (!green) {
+          return {
+            status: 409 as const,
+            error: "not_ready" as const,
+            missing: "deployment_verification" as const,
+            message: "GitHub Actions CI/CD checks or deployment runs have not passed for this pull request head commit.",
+          };
+        }
+      }
+    }
+
+    await tx.bug.update({ where: { id: bug.id }, data: { status: "resolved", reviewStatus: "merged" } });
     await tx.bugActivity.create({
       data: {
         bugId: bug.id,
@@ -432,6 +482,7 @@ export async function acceptFix(
         pullRequestUrl: bug.pullRequestUrl,
         headSha: acceptedHeadSha,
         status: "resolved",
+        reviewStatus: "merged",
       },
       actorAgentId: agent.agentId,
       bugId: bug.id,
