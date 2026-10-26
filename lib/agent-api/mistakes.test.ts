@@ -11,7 +11,6 @@ const db = vi.hoisted(() => ({
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 
 import { recordMistake, listProjectMistakes } from "./mistakes";
-import { AgentLevelError } from "@/lib/agents/levels";
 
 const tenantId = "tenant-test";
 const mergerAgent = { agentId: "m1", name: "Merger Agent", ownerId: "user-merger", tenantId, level: "merger" as const, burst: false, keyId: "k-m" };

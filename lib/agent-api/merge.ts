@@ -318,7 +318,7 @@ export async function acceptFix(
         data: { reviewStatus: "ready_to_merge" },
       });
       const acceptCommentBody = "Fix accepted by merger agent. Status changed to ready to merge.";
-      const acceptComment = await tx.comment.create({
+      await tx.comment.create({
         data: {
           bugId: bug.id,
           authorId: agent.ownerId,
