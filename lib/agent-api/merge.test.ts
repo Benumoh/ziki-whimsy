@@ -38,7 +38,7 @@ const redesign = vi.hoisted(() => ({ assertRedesignOpen: vi.fn() }));
 vi.mock("@/lib/redesigns", () => ({ assertRedesignOpen: redesign.assertRedesignOpen }));
 
 import { IssueApiError } from "@/lib/agent-api/issues";
-import { acceptFix } from "./merge";
+import { acceptFix, executeAdminMerge } from "./merge";
 import { resetWorkflowCache } from "@/lib/workflow";
 
 const PR = "https://github.com/Zedu-Endor/issue-tracker/pull/42";
@@ -67,7 +67,7 @@ function bugRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function merger(id: string, ownerId: string, level: "observer" | "contributor" | "reviewer" | "dispatcher" | "merger" = "merger") {
+function merger(id: string, ownerId: string, level: "observer" | "contributor" | "reviewer" | "dispatcher" | "merger" | "admin_merger" = "merger") {
   return { agentId: id, name: id, ownerId, tenantId: "tenant_zedu", level, burst: false, keyId: `key-${id}` };
 }
 
@@ -214,7 +214,7 @@ describe("acceptFix: the merger must be independent too (#493)", () => {
     confirmWith("rob", "sam");
     verdict("r1", "rob");
     verdict("r2", "sam");
-    expect(await acceptFix(merger("m1", "mo", "merger"), "bug1")).toMatchObject({ status: 200, accepted: true });
+    expect(await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1")).toMatchObject({ status: 200, accepted: true });
     expect(db.comment.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -358,7 +358,7 @@ describe("acceptFix: dispatcher completion reward", () => {
       { status: "active", releasedAt: null, agentId: "solver-agent", beneficiaryUserId: "ada", dispatcherUserId: "dispatcher-owner", agent: { ownerUserId: "ada" } },
     ] }));
 
-    expect(await acceptFix(merger("m1", "mo"), "bug1")).toMatchObject({ status: 200 });
+    expect(await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1")).toMatchObject({ status: 200 });
     const rewards = db.pointEntry.createMany.mock.calls.flatMap((call) => call[0].data).filter((entry) => entry.role === "dispatcher");
     expect(rewards).toEqual([{
       tenantId: "tenant_zedu", bugId: "bug1", userId: "dispatcher-owner",
@@ -393,7 +393,7 @@ describe("acceptFix: a successful accept (#434)", () => {
     verdict("r1", "rob");
     verdict("r2", "sam");
 
-    const result = await acceptFix(merger("m1", "mo", "merger"), "bug1");
+    const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1");
     expect(result).toMatchObject({ status: 200, accepted: true, solverUserId: "ada" });
     expect(db.bug.update).toHaveBeenCalledWith({ where: { id: "bug1" }, data: { status: "resolved" } });
     expect(db.bugActivity.create).toHaveBeenCalledWith({
@@ -462,7 +462,7 @@ describe("acceptFix: a successful accept (#434)", () => {
       claims: [{ status: "active", releasedAt: null, agentId: "solver-agent", beneficiaryUserId: "ada", agent: { ownerUserId: "ada" } }],
     }));
 
-    expect(await acceptFix(merger("m1", "mo", "merger"), "bug1")).toMatchObject({ status: 200, accepted: true });
+    expect(await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1")).toMatchObject({ status: 200, accepted: true });
     expect(db.issueClaim.updateMany).toHaveBeenCalledWith({
       where: { bugId: "bug1", status: "active", releasedAt: null },
       data: { status: "released", releasedAt: expect.any(Date), releaseReason: "resolved" },
@@ -475,7 +475,7 @@ describe("acceptFix: a successful accept (#434)", () => {
     verdict("r2", "sam", "sam");
     verdict("r3", "tia", "tia");
 
-    const result = await acceptFix(merger("m1", "mo", "merger"), "bug1");
+    const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1");
     expect(result).toMatchObject({ status: 200, rewardedReviewerUserIds: ["rob", "sam", "tia"] });
     const awards = db.pointEntry.createMany.mock.calls.map((call) => call[0].data[0]);
     const reviewerAwards = awards.filter((a) => a.role === "reviewer");
@@ -486,6 +486,24 @@ describe("acceptFix: a successful accept (#434)", () => {
     expect(reviewerAwards[2].points).toBeLessThan(reviewerAwards[1].points);
     expect(reviewerAwards[1].points).toBeLessThan(reviewerAwards[0].points);
     expect(Number.isInteger(reviewerAwards[2].points)).toBe(false);
+  });
+
+  it("merger accepts fix and marks ready to merge without resolving or awarding points", async () => {
+    confirmWith("rob", "sam");
+    verdict("r1", "rob");
+    verdict("r2", "sam");
+    const result = await acceptFix(merger("m1", "mo", "merger"), "bug1");
+    expect(result).toMatchObject({ status: 200, accepted: true, readyToMerge: true });
+    expect(db.pointEntry.createMany).not.toHaveBeenCalled();
+    expect(db.bugActivity.create).toHaveBeenCalledWith({
+      data: {
+        bugId: "bug1",
+        actorId: "mo",
+        type: "status_changed",
+        summary: "Fix accepted by merger agent and marked ready to merge",
+        metadata: { field: "status", readyToMerge: true, headSha: "linked-sha" },
+      },
+    });
   });
 
   it("does not count or pay a verdict credited to the active claim beneficiary (#495)", async () => {
@@ -509,7 +527,7 @@ describe("acceptFix: a successful accept (#434)", () => {
       bugRow({ assigneeId: "ada", claims: [{ status: "active", releasedAt: null, agentId: "w1", beneficiaryUserId: "zoe", agent: { ownerUserId: "zoe" } }] }),
     );
 
-    const result = await acceptFix(merger("m1", "mo", "merger"), "bug1");
+    const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1");
     expect(result).toMatchObject({ solverUserId: "zoe" });
     const awards = db.pointEntry.createMany.mock.calls.map((call) => call[0].data[0]);
     expect(awards).toContainEqual(expect.objectContaining({ role: "solver", userId: "zoe", sourceKey: "solver:bug1:zoe" }));
@@ -530,7 +548,7 @@ describe("acceptFix: a successful accept (#434)", () => {
       }],
     }));
 
-    const result = await acceptFix(merger("m1", "mo", "merger"), "bug1");
+    const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1");
     expect(result).toMatchObject({ status: 200, solverUserId: null });
     const awards = db.pointEntry.createMany.mock.calls.map((call) => call[0].data[0]);
     expect(awards.some((a) => a.role === "solver")).toBe(false);
@@ -542,7 +560,7 @@ describe("acceptFix: a successful accept (#434)", () => {
     verdict("r2", "sam");
     db.bug.findFirst.mockResolvedValue(bugRow({ status: "in_progress" }));
 
-    const result = await acceptFix(merger("m1", "mo", "merger"), "bug1");
+    const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1");
     expect(result).toMatchObject({ status: 200, accepted: true });
     expect(db.bugActivity.create).toHaveBeenCalledWith({
       data: {
