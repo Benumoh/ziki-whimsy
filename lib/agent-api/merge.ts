@@ -76,9 +76,12 @@ function activeClaim(bug: LoadedBug): ActiveClaim | null {
 export type AcceptFixResult =
   | {
       status: 200;
-      accepted: true;
-      solverUserId: string | null;
-      rewardedReviewerUserIds: string[];
+      accepted: boolean;
+      readyToMerge?: boolean;
+      merged?: boolean;
+      solverUserId?: string | null;
+      rewardedReviewerUserIds?: string[];
+      notes?: string;
     }
   | { status: 403; error: "insufficient_level" | "not_independent"; message: string }
   | { status: 404; error: "not_found"; message: string }
@@ -93,10 +96,28 @@ export type AcceptFixDeps = {
   client?: GitHubClient;
 };
 
+export type AcceptFixOptions = {
+  verdict?: "accept" | "reject";
+  notes?: string;
+};
+
+export async function executeAdminMerge(
+  agent: AgentContext,
+  bugId: string,
+  deps: AcceptFixDeps = {},
+): Promise<AcceptFixResult> {
+  if (!hasLevel(agent.level, "admin_merger")) {
+    return { status: 403, error: "insufficient_level", message: "Only admin merger agents can execute the final merge." };
+  }
+  return acceptFix(agent, bugId, deps, { verdict: "accept" }, true);
+}
+
 export async function acceptFix(
   agent: AgentContext,
   bugId: string,
   deps: AcceptFixDeps = {},
+  options: AcceptFixOptions = {},
+  forceAdminMerge = false,
 ): Promise<AcceptFixResult> {
   if (!hasLevel(agent.level, "merger")) {
     return { status: 403, error: "insufficient_level", message: "Only merger agents can accept a fix." };
@@ -107,6 +128,39 @@ export async function acceptFix(
     select: mergeBugSelect,
   });
   if (!bug) return { status: 404, error: "not_found", message: "No such issue in this agent's tenant." };
+
+  if (options.verdict === "reject") {
+    const rejectNotes = options.notes?.trim() || "Fix rejected by merger agent.";
+    await prisma.$transaction(async (tx) => {
+      const comment = await tx.comment.create({
+        data: {
+          bugId: bug.id,
+          authorId: agent.ownerId,
+          agentId: agent.agentId,
+          body: rejectNotes,
+          type: "comment",
+        },
+        select: { id: true },
+      });
+      await tx.bugActivity.create({
+        data: {
+          bugId: bug.id,
+          actorId: agent.ownerId,
+          type: "commented",
+          summary: commentedSummary(rejectNotes),
+          metadata: { commentId: comment.id, commentPreview: commentPreview(rejectNotes), rejected: true },
+        },
+      });
+      await publish(tx, {
+        tenantId: bug.tenantId,
+        type: "issue.updated",
+        payload: { issueId: bug.id, rejected: true, notes: rejectNotes },
+        actorAgentId: agent.agentId,
+        bugId: bug.id,
+      });
+    });
+    return { status: 200, accepted: false, notes: rejectNotes };
+  }
   // #493: the merger is an independent reviewer too. The same rule that keeps
   // a claim holder's side out of the verdicts keeps it out of the accept —
   // otherwise an owner could accept their own fix and collect the solver
@@ -232,7 +286,68 @@ export async function acceptFix(
 
     const rewardedReviewerUserIds = reviewers;
     const solverUserId = claim?.beneficiaryUserId ?? bug.assigneeId;
+    const isAdminMerge = forceAdminMerge || agent.level === "admin_merger";
 
+    if (!isAdminMerge) {
+      // Merger role: Accepts fix, marks ready to merge without resolving or awarding points
+      const acceptCommentBody = "Fix accepted by merger agent. Status changed to ready to merge.";
+      const acceptComment = await tx.comment.create({
+        data: {
+          bugId: bug.id,
+          authorId: agent.ownerId,
+          agentId: agent.agentId,
+          body: acceptCommentBody,
+          type: "comment",
+        },
+        select: { id: true },
+      });
+      await tx.bugActivity.create({
+        data: {
+          bugId: bug.id,
+          actorId: agent.ownerId,
+          type: "status_changed",
+          summary: "Fix accepted by merger agent and marked ready to merge",
+          metadata: { field: "status", readyToMerge: true, headSha: acceptedHeadSha },
+        },
+      });
+      await audit(
+        agent,
+        "issue.accepted",
+        `bug:${bug.id}`,
+        {
+          solverUserId,
+          rewardedReviewerUserIds,
+          pullRequestUrl: bug.pullRequestUrl,
+          headSha: acceptedHeadSha,
+          readyToMerge: true,
+        },
+        { bugId: bug.id, db: tx },
+      );
+      await publish(tx, {
+        tenantId: bug.tenantId,
+        type: "issue.updated",
+        payload: {
+          issueId: bug.id,
+          solverUserId,
+          rewardedReviewerUserIds,
+          pullRequestUrl: bug.pullRequestUrl,
+          headSha: acceptedHeadSha,
+          readyToMerge: true,
+        },
+        actorAgentId: agent.agentId,
+        bugId: bug.id,
+      });
+
+      return {
+        status: 200 as const,
+        accepted: true as const,
+        readyToMerge: true as const,
+        solverUserId,
+        rewardedReviewerUserIds,
+      };
+    }
+
+    // Admin merger role: Finalizes resolution, awards points, and releases claim
     await tx.bug.update({ where: { id: bug.id }, data: { status: "resolved" } });
     await tx.bugActivity.create({
       data: {
@@ -244,19 +359,12 @@ export async function acceptFix(
       },
     });
 
-    // A completed issue no longer has active work to heartbeat. Release its
-    // claim as resolved in the same transaction so the silence sweep cannot
-    // count a successful fix as abandonment.
     await tx.issueClaim.updateMany({
       where: { bugId: bug.id, status: "active", releasedAt: null },
       data: { status: "released", releasedAt: new Date(), releaseReason: "resolved" },
     });
 
-    // #458: a merger's acceptance is a decision other people read on the
-    // issue, not only an audit row — leave a plain comment saying it merged,
-    // the same way any other agent comment is recorded, so the thread itself
-    // shows the merge without anyone having to read the audit log.
-    const mergeCommentBody = "Fix accepted and merged by a merger agent.";
+    const mergeCommentBody = "Fix accepted and merged by admin merger.";
     const mergeComment = await tx.comment.create({
       data: {
         bugId: bug.id,
@@ -277,9 +385,6 @@ export async function acceptFix(
       },
     });
 
-    // The solver: the person the active claim is for, else whoever it is
-    // assigned to. The sourceKey makes a second accept, or the backfill
-    // (#435), a no-op.
     const rewardConfig = await getProjectRewardConfig(tx, bug.projectId);
     if (solverUserId) {
       await award(tx, {
@@ -308,13 +413,12 @@ export async function acceptFix(
       agent,
       "issue.accepted",
       `bug:${bug.id}`,
-      // #489: record which pull request and head commit were accepted, so a
-      // different PR (or new commits) can't merge afterwards.
       {
         solverUserId,
         rewardedReviewerUserIds,
         pullRequestUrl: bug.pullRequestUrl,
         headSha: acceptedHeadSha,
+        merged: true,
       },
       { bugId: bug.id, db: tx },
     );
@@ -333,6 +437,12 @@ export async function acceptFix(
       bugId: bug.id,
     });
 
-    return { status: 200 as const, accepted: true as const, solverUserId, rewardedReviewerUserIds };
+    return {
+      status: 200 as const,
+      accepted: true as const,
+      merged: true as const,
+      solverUserId,
+      rewardedReviewerUserIds,
+    };
   });
 }

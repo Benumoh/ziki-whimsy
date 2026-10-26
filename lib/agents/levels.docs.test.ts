@@ -87,7 +87,12 @@ const ENFORCED_ELSEWHERE: Record<string, { file: string; check: string }> = {
   "POST /api/v1/issues/{id}/comments": { file: "app/api/v1/issues/[id]/comments/route.ts", check: '"comments.create", "comment"' },
   "GET /api/v1/dispatcher/metrics": { file: "app/api/v1/dispatcher/metrics/route.ts", check: 'hasLevel(agent.level, "dispatcher")' },
   "GET /api/v1/dispatcher/ready-issues": { file: "app/api/v1/dispatcher/ready-issues/route.ts", check: 'hasLevel(agent.level, "dispatcher")' },
+  "GET /api/v1/contributor/ready-issues": { file: "app/api/v1/contributor/ready-issues/route.ts", check: 'hasLevel(agent.level, "contributor")' },
+  "GET /api/v1/triager/pending-issues": { file: "app/api/v1/triager/pending-issues/route.ts", check: 'hasLevel(agent.level, "triager")' },
+  "GET /api/v1/reviewer/pending-issues": { file: "app/api/v1/reviewer/pending-issues/route.ts", check: 'hasLevel(agent.level, "reviewer")' },
+  "GET /api/v1/merger/ready-issues": { file: "app/api/v1/merger/ready-issues/route.ts", check: 'hasLevel(agent.level, "merger")' },
   "POST /api/v1/issues/{id}/merge": { file: "lib/agent-api/merge.ts", check: 'hasLevel(agent.level, "merger")' },
+  "POST /api/v1/issues/{id}/admin-merge": { file: "lib/agent-api/merge.ts", check: 'hasLevel(agent.level, "admin_merger")' },
   "POST /api/v1/issues/{id}/test-results": { file: "lib/agent-api/test-verdict.ts", check: 'hasLevel(agent.level, "reviewer")' },
   "POST /api/v1/issues/{id}/validations": { file: "lib/agent-api/validation.ts", check: 'body.kind === "duplicate" ? "triager" : "reviewer"' },
 };

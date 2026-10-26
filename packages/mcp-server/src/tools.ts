@@ -13,7 +13,7 @@ export type ToolDef = {
   /** What the tool does and when to use it. */
   summary: string;
   /** Role permission the route needs (see docs/ziki-for-agents.md). */
-  level: "observer" | "contributor" | "triager" | "reviewer" | "dispatcher" | "merger" | "comment";
+  level: "observer" | "contributor" | "triager" | "reviewer" | "dispatcher" | "merger" | "admin_merger" | "comment";
   method: RequestSpec["method"];
   /** Route under /api/v1; `{x}` segments are filled from the input field `x`. */
   route: string;
@@ -266,16 +266,18 @@ export const TOOLS: readonly ToolDef[] = [
   },
   {
     name: "ziki_link_pull_request",
-    summary: "Link the GitHub pull request that fixes an issue. If the fix is already accepted, Ziki also tries to merge it.",
+    summary: "Link the GitHub pull request that fixes an issue, along with screenshots of the fix or test results demonstrating the fix.",
     level: "contributor",
     method: "POST",
     route: "/issues/{id}/github",
     projectScoped: true,
-    body: ["pullRequestUrl"],
+    body: ["pullRequestUrl", "screenshots", "testResults"],
     input: {
       id: issueId,
       projectId,
       pullRequestUrl: z.string().trim().min(1).max(2048).describe("https://github.com/<owner>/<repo>/pull/<number>"),
+      screenshots: z.array(z.string().trim().min(1)).optional().describe("Screenshots of the product fix."),
+      testResults: z.string().optional().describe("Test results or verification summary demonstrating the fix."),
     },
   },
   {
@@ -740,6 +742,59 @@ export const TOOLS: readonly ToolDef[] = [
     route: "/issues/{id}/merge",
     projectScoped: true,
     input: { id: issueId, projectId },
+  },
+  {
+    name: "ziki_admin_merge",
+    summary: "Execute the final Git merge for an issue fix approved as ready to merge, resolve the issue, and distribute points. Requires admin merger level.",
+    level: "admin_merger",
+    method: "POST",
+    route: "/issues/{id}/admin-merge",
+    projectScoped: true,
+    input: { id: issueId, projectId },
+  },
+  {
+    name: "ziki_find_ready_to_merge_issues",
+    summary: "Find issues confirmed, with active claim, linked PR, and passing test verdicts ready for merger review and acceptance.",
+    level: "merger",
+    method: "GET",
+    route: "/merger/ready-issues",
+    projectScoped: true,
+    query: ["projectId", "limit"],
+    input: { projectId, limit: z.number().int().min(1).max(100).optional() },
+  },
+  {
+    name: "ziki_find_reviewable_issues",
+    summary: "Find issues needing reviewer validation (unconfirmed reports) or fix verification testing (PR linked).",
+    level: "reviewer",
+    method: "GET",
+    route: "/reviewer/pending-issues",
+    projectScoped: true,
+    query: ["projectId", "type", "limit"],
+    input: {
+      projectId,
+      type: z.enum(["validation", "test", "all"]).optional().describe("Filter by validation or test review type."),
+      limit: z.number().int().min(1).max(100).optional(),
+    },
+  },
+  {
+    name: "ziki_find_triageable_issues",
+    summary: "Find open unconfirmed issues needing duplicate assessment or triage clearance.",
+    level: "triager",
+    method: "GET",
+    route: "/triager/pending-issues",
+    projectScoped: true,
+    query: ["projectId", "limit"],
+    input: { projectId, limit: z.number().int().min(1).max(100).optional() },
+  },
+  {
+    name: "ziki_find_claimable_issues",
+    summary: "Find confirmed issues at or above the work-readiness upvote threshold available for claiming or bidding.",
+    level: "contributor",
+    method: "GET",
+    route: "/contributor/ready-issues",
+    projectScoped: true,
+    query: ["projectId", "limit"],
+    input: { projectId, limit: z.number().int().min(1).max(100).optional() },
   },
   {
     name: "ziki_list_interest",
