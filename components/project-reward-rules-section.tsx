@@ -59,7 +59,7 @@ export function ProjectRewardRulesSection({
                   name="solverPointsLow"
                   defaultValue={initialConfig?.solver?.low ?? fallback.solver.low}
                   min={0}
-                  max={10000}
+                  max={1_000_000}
                   disabled={disabled}
                   className="mt-1"
                 />
@@ -72,7 +72,7 @@ export function ProjectRewardRulesSection({
                   name="solverPointsMedium"
                   defaultValue={initialConfig?.solver?.medium ?? fallback.solver.medium}
                   min={0}
-                  max={10000}
+                  max={1_000_000}
                   disabled={disabled}
                   className="mt-1"
                 />
@@ -85,7 +85,7 @@ export function ProjectRewardRulesSection({
                   name="solverPointsHigh"
                   defaultValue={initialConfig?.solver?.high ?? fallback.solver.high}
                   min={0}
-                  max={10000}
+                  max={1_000_000}
                   disabled={disabled}
                   className="mt-1"
                 />
@@ -98,7 +98,7 @@ export function ProjectRewardRulesSection({
                   name="solverPointsCritical"
                   defaultValue={initialConfig?.solver?.critical ?? fallback.solver.critical}
                   min={0}
-                  max={10000}
+                  max={1_000_000}
                   disabled={disabled}
                   className="mt-1"
                 />
@@ -118,7 +118,7 @@ export function ProjectRewardRulesSection({
                 name="reporterPoints"
                 defaultValue={initialConfig?.reporter ?? fallback.reporter}
                 min={0}
-                max={10000}
+                max={1_000_000}
                 disabled={disabled}
                 className="mt-1"
               />
@@ -134,7 +134,7 @@ export function ProjectRewardRulesSection({
                 name="reviewerPoints"
                 defaultValue={initialConfig?.reviewer ?? fallback.reviewer}
                 min={0}
-                max={10000}
+                max={1_000_000}
                 disabled={disabled}
                 className="mt-1"
               />

@@ -364,7 +364,7 @@ describe("acceptFix: dispatcher completion reward", () => {
     const rewards = db.pointEntry.createMany.mock.calls.flatMap((call) => call[0].data).filter((entry) => entry.role === "dispatcher");
     expect(rewards).toEqual([{
       tenantId: "tenant_zedu", bugId: "bug1", userId: "dispatcher-owner",
-      role: "dispatcher", points: 2, sourceKey: "dispatcher:bug1",
+      role: "dispatcher", points: 60, sourceKey: "dispatcher:bug1",
     }]);
   });
 
@@ -418,7 +418,7 @@ describe("acceptFix: a successful accept (#434)", () => {
       userId: "ada",
       bugId: "bug1",
       role: "solver",
-      points: 25,
+      points: 750,
       sourceKey: "solver:bug1:ada",
     });
     expect(awards.filter((a) => a.role === "solver")).toHaveLength(1);
@@ -487,7 +487,6 @@ describe("acceptFix: a successful accept (#434)", () => {
     expect(reviewerAwards[2]).toMatchObject({ userId: "tia", points: reviewerPointsAt(2, REVIEWER_POINTS), sourceKey: "reviewer:bug1:tia" });
     expect(reviewerAwards[2].points).toBeLessThan(reviewerAwards[1].points);
     expect(reviewerAwards[1].points).toBeLessThan(reviewerAwards[0].points);
-    expect(Number.isInteger(reviewerAwards[2].points)).toBe(false);
   });
 
   it("merger accepts fix and marks ready to merge without resolving or awarding points", async () => {
