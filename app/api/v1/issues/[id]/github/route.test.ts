@@ -105,7 +105,7 @@ describe("POST /api/v1/issues/[id]/github (#452)", () => {
     expect(await response.json()).toEqual({ linked: true, merged: true, mergeCommitSha: "merge-sha" });
     expect(db.bug.update).toHaveBeenCalledWith({
       where: { id: "bug1" },
-      data: { pullRequestUrl: PR_URL, pullRequestHeadSha: null },
+      data: { pullRequestUrl: PR_URL, pullRequestHeadSha: null, reviewStatus: "submitted" },
     });
     expect(db.bugActivity.create).toHaveBeenCalledWith({
       data: {
@@ -187,7 +187,7 @@ describe("POST /api/v1/issues/[id]/github (#452)", () => {
     expect(response.status).toBe(200);
     expect(db.bug.update).toHaveBeenCalledWith({
       where: { id: "bug1" },
-      data: { pullRequestUrl: PR_URL, pullRequestHeadSha: null },
+      data: { pullRequestUrl: PR_URL, pullRequestHeadSha: null, reviewStatus: "submitted" },
     });
   });
 
@@ -286,7 +286,7 @@ describe("POST /api/v1/issues/[id]/github (#452)", () => {
     expect(await response.json()).toMatchObject({ linked: true, merged: false, reason: "head_moved" });
     expect(db.bug.update).toHaveBeenCalledWith({
       where: { id: "bug1" },
-      data: { pullRequestUrl: PR_URL, pullRequestHeadSha: "fresh-sha" },
+      data: { pullRequestUrl: PR_URL, pullRequestHeadSha: "fresh-sha", reviewStatus: "submitted" },
     });
   });
 
@@ -301,7 +301,7 @@ describe("POST /api/v1/issues/[id]/github (#452)", () => {
     expect(response.status).toBe(200);
     expect(db.bug.update).toHaveBeenCalledWith({
       where: { id: "bug1" },
-      data: { pullRequestUrl: PR_URL, pullRequestHeadSha: "abc123" },
+      data: { pullRequestUrl: PR_URL, pullRequestHeadSha: "abc123", reviewStatus: "submitted" },
     });
   });
 
@@ -318,7 +318,7 @@ describe("POST /api/v1/issues/[id]/github (#452)", () => {
     expect(response.status).toBe(200);
     expect(db.bug.update).toHaveBeenCalledWith({
       where: { id: "bug1" },
-      data: { pullRequestUrl: PR_URL, pullRequestHeadSha: null },
+      data: { pullRequestUrl: PR_URL, pullRequestHeadSha: null, reviewStatus: "submitted" },
     });
   });
 

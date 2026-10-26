@@ -30,6 +30,8 @@ const db = vi.hoisted(() => ({
   webhookDelivery: { createMany: vi.fn() },
   issueClaim: { updateMany: vi.fn() },
   projectWorkflow: { findUnique: vi.fn() },
+  project: { findFirst: vi.fn() },
+  agentMistake: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), findMany: vi.fn() },
   $transaction: vi.fn(),
 }));
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
@@ -395,7 +397,7 @@ describe("acceptFix: a successful accept (#434)", () => {
 
     const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1");
     expect(result).toMatchObject({ status: 200, accepted: true, solverUserId: "ada" });
-    expect(db.bug.update).toHaveBeenCalledWith({ where: { id: "bug1" }, data: { status: "resolved" } });
+    expect(db.bug.update).toHaveBeenCalledWith({ where: { id: "bug1" }, data: { status: "resolved", reviewStatus: "merged" } });
     expect(db.bugActivity.create).toHaveBeenCalledWith({
       data: {
         bugId: "bug1",
@@ -571,6 +573,52 @@ describe("acceptFix: a successful accept (#434)", () => {
         metadata: { field: "status", from: "in_progress", to: "resolved" },
       },
     });
+  });
+
+  it("rejecting a fix sets reviewStatus to rejected and records mistake if provided", async () => {
+    db.bug.findFirst.mockResolvedValue(bugRow());
+    db.project.findFirst.mockResolvedValue({ id: "proj-1" });
+    db.agentMistake.findFirst.mockResolvedValue(null);
+    db.agentMistake.create.mockResolvedValue({ id: "m-1", title: "Missing unit tests", category: "correctness", recurrenceCount: 1 });
+    db.comment.create.mockResolvedValue({ id: "c-1" });
+
+    const result = await acceptFix(merger("m1", "mo", "merger"), "bug1", {}, {
+      verdict: "reject",
+      notes: "Tests missing for edge case.",
+      mistake: {
+        title: "Missing unit tests",
+        antiPattern: "PR was submitted without edge case tests for boundary conditions.",
+        remediation: "Always add tests covering empty and single-element collections.",
+      },
+    });
+
+    expect(result).toEqual({ status: 200, accepted: false, notes: "Tests missing for edge case." });
+    expect(db.bug.update).toHaveBeenCalledWith({
+      where: { id: "bug1" },
+      data: { reviewStatus: "rejected" },
+    });
+    expect(db.agentMistake.create).toHaveBeenCalled();
+  });
+
+  it("admin merger refuses to merge when GitHub Actions CI/CD checks fail", async () => {
+    confirmWith("rob", "sam");
+    verdict("r1", "rob");
+    verdict("r2", "sam");
+    db.bug.findFirst.mockResolvedValue(bugRow());
+    const client = {
+      getPullRequest: vi.fn(async () => ({ state: "open", merged: false, mergeable: true, headSha: "linked-sha" })),
+      checksGreen: vi.fn(async () => false),
+      mergePullRequest: vi.fn(),
+    };
+
+    const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1", { client });
+    expect(result).toMatchObject({
+      status: 409,
+      error: "not_ready",
+      missing: "deployment_verification",
+      message: expect.stringContaining("GitHub Actions CI/CD checks"),
+    });
+    expect(db.bug.update).not.toHaveBeenCalled();
   });
 });
 

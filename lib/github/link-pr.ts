@@ -39,6 +39,7 @@ export async function linkPullRequest(params: {
       data: {
         pullRequestUrl,
         pullRequestHeadSha,
+        reviewStatus: "submitted",
         ...(screenshots?.length ? { proofLinks: { push: screenshots } } : {}),
       },
     });
