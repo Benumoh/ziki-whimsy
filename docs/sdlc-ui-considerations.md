@@ -130,3 +130,19 @@ Features or issues that fundamentally alter product philosophy or architecture s
   - When flagged, display a high-priority **"Product / Architectural Review Required"** banner at the top of the issue.
   - Visual indicator that autonomous bidding and claim dispatching are paused until human approval is recorded.
   - One-click "Approve Direction" or "Decline & Close" actions for workspace admins.
+
+---
+
+## 9. Implementation Status & Shipped Components
+
+The core UI components and integration points for the Autonomous Multi-Agent SDLC are now fully implemented and merged:
+
+| Component | Path | Purpose |
+| --- | --- | --- |
+| `ReviewStatusBadge` | [`components/review-status-badge.tsx`](../components/review-status-badge.tsx) | Renders badges for `submitted`, `ready_to_merge`, `rejected`, and `merged` across issue details and link previews. |
+| `SubmissionEvidence` | [`components/submission-evidence.tsx`](../components/submission-evidence.tsx) | Thumbnail screenshot gallery and collapsible terminal test runner output viewer. |
+| `ProjectMistakesView` | [`components/project-mistakes-view.tsx`](../components/project-mistakes-view.tsx) | Interactive explorer for the Agent Mistake Registry with category filtering, recurrence badges, and code diffs. |
+| `IssueRowStatus` | [`components/issue-row-status.tsx`](../components/issue-row-status.tsx) | Live pulsing indicators and status chips on the main issue list. |
+| `parseBugListFilters` | [`lib/issue-list-filters.ts`](../lib/issue-list-filters.ts) | Filter parsing support for `reviewStatus`. |
+| Prisma Migration | [`prisma/migrations/20261106000000_...`](../prisma/migrations/20261106000000_agent_sdlc_lifecycle_and_mistakes/migration.sql) | PostgreSQL schema definitions for `reviewStatus`, `AgentMistake`, and `admin_merger`. |
+
