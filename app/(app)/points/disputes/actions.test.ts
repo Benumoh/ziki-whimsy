@@ -150,7 +150,7 @@ describe("resolveDisputeAction (#436)", () => {
           expect.objectContaining({
             userId: "user-2",
             role: "solver",
-            points: 40,
+            points: 1200,
             sourceKey: "solver:bug-1:user-2",
           }),
         ],

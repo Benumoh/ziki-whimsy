@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import type { PlatformRewardConfig } from "@/lib/points/platform-reward-config";
+import { POINT_AWARD_MAX, POINT_TARGET_MAX } from "@/lib/points/rules";
 import {
   savePlatformRewardsAction,
   type PlatformRewardsActionResult,
@@ -65,7 +66,7 @@ export function PlatformRewardsForm({
                 name={name}
                 type="number"
                 min={0}
-                max={10000}
+                max={POINT_AWARD_MAX}
                 defaultValue={value}
                 placeholder={String(fallback)}
                 className="mt-1"
@@ -106,7 +107,7 @@ export function PlatformRewardsForm({
               name={name}
               type="number"
               min={name === "targetPoints" ? 1 : 0}
-              max={name === "targetPoints" ? 1_000_000 : 10000}
+              max={name === "targetPoints" ? POINT_TARGET_MAX : POINT_AWARD_MAX}
               defaultValue={value}
               placeholder={String(fallback)}
               className="mt-1"

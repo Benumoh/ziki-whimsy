@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Severity } from "@prisma/client";
 import {
+  POINT_AWARD_MAX,
   SOLVER_POINTS,
   REPORTER_POINTS,
   REVIEWER_POINTS,
@@ -10,10 +11,10 @@ export const projectRewardConfigSchema = z
   .object({
     solver: z
       .object({
-        low: z.coerce.number().int().min(0).max(10000).default(SOLVER_POINTS.low),
-        medium: z.coerce.number().int().min(0).max(10000).default(SOLVER_POINTS.medium),
-        high: z.coerce.number().int().min(0).max(10000).default(SOLVER_POINTS.high),
-        critical: z.coerce.number().int().min(0).max(10000).default(SOLVER_POINTS.critical),
+        low: z.coerce.number().int().min(0).max(POINT_AWARD_MAX).default(SOLVER_POINTS.low),
+        medium: z.coerce.number().int().min(0).max(POINT_AWARD_MAX).default(SOLVER_POINTS.medium),
+        high: z.coerce.number().int().min(0).max(POINT_AWARD_MAX).default(SOLVER_POINTS.high),
+        critical: z.coerce.number().int().min(0).max(POINT_AWARD_MAX).default(SOLVER_POINTS.critical),
       })
       .default({
         low: SOLVER_POINTS.low,
@@ -21,8 +22,8 @@ export const projectRewardConfigSchema = z
         high: SOLVER_POINTS.high,
         critical: SOLVER_POINTS.critical,
       }),
-    reporter: z.coerce.number().int().min(0).max(10000).default(REPORTER_POINTS),
-    reviewer: z.coerce.number().int().min(0).max(10000).default(REVIEWER_POINTS),
+    reporter: z.coerce.number().int().min(0).max(POINT_AWARD_MAX).default(REPORTER_POINTS),
+    reviewer: z.coerce.number().int().min(0).max(POINT_AWARD_MAX).default(REVIEWER_POINTS),
     guidelines: z.string().trim().max(2000).optional().nullable().default(null),
   })
   .default({

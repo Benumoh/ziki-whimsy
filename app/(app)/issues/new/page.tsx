@@ -78,7 +78,7 @@ export default async function NewBugPage() {
   }, null);
 
   return (
-    <div className="create-issue-page mx-auto w-full space-y-6 pb-10">
+    <div className="create-issue-page mx-auto w-full min-w-0 space-y-6 pb-10">
       <div className="create-issue-heading space-y-2">
         <Link
           href="/issues"

@@ -551,7 +551,7 @@ describe("confirmation: the two-reviewer rule (#433)", () => {
         userId: "tia",
         bugId: "bug1",
         role: "triager",
-        points: 1,
+        points: 30,
         sourceKey: "triager-clear:bug1:tia",
       },
       {
@@ -575,7 +575,7 @@ describe("confirmation: the two-reviewer rule (#433)", () => {
         userId: "ada",
         bugId: "bug1",
         role: "reporter",
-        points: 5,
+        points: 150,
         sourceKey: "reporter:bug1:ada",
       },
     ]);
@@ -632,7 +632,7 @@ describe("confirmation: the two-reviewer rule (#433)", () => {
     expect(roles).not.toContain("reporter");
     expect(db.pointEntry.createMany.mock.calls[0][0].data[0]).toMatchObject({
       role: "triager",
-      points: 5,
+      points: 150,
       sourceKey: "duplicate-marker:bug1:tia",
     });
   });

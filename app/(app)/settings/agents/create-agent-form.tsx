@@ -253,7 +253,7 @@ export function CreateAgentForm({
           })}
         </div>
         <p className="text-xs text-zk-muted">
-          Registering as {AGENT_LEVEL_LABELS[level]}
+          Registering as {AGENT_LEVEL_LABELS[selectedLevel]}
           {selectedProject ? ` in ${selectedProject.name}` : ""}
         </p>
       </fieldset>
