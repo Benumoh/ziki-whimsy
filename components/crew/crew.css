@@ -1,0 +1,206 @@
+/*
+ * The agent crew's motion: small loops only, all decorative, and all off
+ * under reduced motion (the rule at the end).
+ */
+@keyframes crew-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes crew-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes crew-float-z {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(10px, -18px);
+  }
+}
+
+@keyframes crew-sway {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+@keyframes crew-knock {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+  70%,
+  90% {
+    transform: rotate(-14deg);
+  }
+  80% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes crew-ripple {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes crew-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  50% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes crew-walk {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(-2deg);
+  }
+  25% {
+    transform: translate(2px, -3px) rotate(0deg);
+  }
+  50% {
+    transform: translate(4px, 0) rotate(2deg);
+  }
+  75% {
+    transform: translate(2px, -3px) rotate(0deg);
+  }
+}
+
+@keyframes crew-pop {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.18) rotate(-4deg);
+  }
+  60% {
+    transform: scale(0.96) rotate(2deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes crew-spark {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4);
+  }
+  15%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--crew-dx, 0), var(--crew-dy, -14px)) scale(1);
+  }
+}
+
+.crew-bob {
+  animation: crew-bob 2.4s ease-in-out infinite;
+}
+
+.crew-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: crew-blink 4.8s ease-in-out infinite;
+}
+
+.crew-z {
+  animation: crew-float-z 2.6s ease-out infinite;
+}
+
+.crew-z-2 {
+  animation-delay: 1.3s;
+}
+
+.crew-sway {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: crew-sway 3.2s ease-in-out infinite;
+}
+
+.crew-knock {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: crew-knock 1.8s ease-in-out infinite;
+}
+
+.crew-ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: crew-ripple 1.8s ease-out infinite;
+}
+
+.crew-ripple-2 {
+  animation-delay: 0.9s;
+}
+
+.crew-steam {
+  animation: crew-steam 2.2s ease-out infinite;
+}
+
+.crew-walk {
+  animation: crew-walk 0.9s ease-in-out infinite;
+}
+
+/* The points pill, when new points have landed since the last visit. */
+.crew-pop {
+  animation: crew-pop 0.7s ease-out 2;
+}
+
+.crew-spark {
+  position: absolute;
+  pointer-events: none;
+  animation: crew-spark 2.2s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="crew-"] {
+    animation: none !important;
+  }
+
+  .crew-spark {
+    display: none;
+  }
+}

@@ -67,6 +67,12 @@ export function InboxAgents({ agents }: { agents: InboxAgent[] }) {
             </Link>
           </div>
           <span className={`mt-0.5 inline-flex rounded-full px-2 py-px text-[10.5px] font-semibold ${status.tone}`}>{status.label}</span>
+          {agent.status === "waiting" ? (
+            // The agent speaking up, so a waiting agent reads as asking, not stuck.
+            <p className="mt-1.5 w-fit rounded-xl rounded-tl-sm bg-zk-warn-bg px-2.5 py-1 text-xs font-semibold text-zk-warn-fg">
+              Psst, I have a question for you.
+            </p>
+          ) : null}
           <p className="mt-1 truncate text-xs text-zk-text2">{agent.activity}</p>
           <p className="truncate text-[11px] text-zk-muted">{agent.done}</p>
         </div>

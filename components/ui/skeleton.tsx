@@ -1,3 +1,5 @@
+import { CrewScene } from "@/components/crew/crew-scene";
+
 /**
  * Placeholder blocks for loading.tsx files (#291). The pulse is motion-safe:
  * with reduced motion requested the blocks simply sit still.
@@ -18,8 +20,19 @@ export function SkeletonPage({
     <div className="space-y-6" role="status" aria-live="polite">
       <span className="sr-only">{label}</span>
       <div aria-hidden="true" className="space-y-6">
+        <LoadingCrew />
         {children}
       </div>
+    </div>
+  );
+}
+
+/** One of the crew hauling the page in, above the placeholder blocks. */
+export function LoadingCrew() {
+  return (
+    <div className="flex items-center gap-3">
+      <CrewScene scene="carrying" width={96} />
+      <span className="text-sm font-medium text-zk-muted">The crew is fetching this…</span>
     </div>
   );
 }

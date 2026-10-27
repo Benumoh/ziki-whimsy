@@ -10,6 +10,7 @@ import { auth } from "@/auth";
 import { requireUser } from "@/lib/auth-helpers";
 import { InboxButton } from "@/components/inbox-button";
 import { InboxAgents } from "@/components/inbox-agents";
+import { CrewScene } from "@/components/crew/crew-scene";
 import { loadOwnAgents, type DashboardAgent } from "@/lib/dashboard-overview";
 import { agentWorkDone, describeWorkDone, type AgentWorkDone } from "@/lib/agent-work";
 import type { AppRole } from "@/lib/roles";
@@ -944,6 +945,7 @@ export default async function BugsPage({
           <FirstRunWelcome isAdmin={canDelete} hasTenant={Boolean(tenantId)} />
         ) : bugs.length === 0 ? (
           <div className="rounded-[20px] border border-zk-border bg-zk-surface px-4 py-12 text-center">
+            <CrewScene scene={inboxView ? "lounging" : "searching"} width={180} className="mx-auto mb-4" />
             <p className="font-bold text-zk-text">
               {inboxView
                 ? "Nothing here right now."
@@ -1190,6 +1192,7 @@ function FirstRunWelcome({
   if (!hasTenant) {
     return (
       <section aria-labelledby="issues-workspace-heading" className="issues-workspace-empty rounded-[20px] border border-zk-border bg-zk-bg px-6 py-10 text-center sm:px-8">
+        <CrewScene scene="knocking" width={200} className="mx-auto mb-4" />
         <h2 id="issues-workspace-heading" className="text-xl font-bold leading-7 text-zk-text">No workspace yet</h2>
         <p className="mx-auto mt-3 max-w-lg text-base leading-7 text-zk-text2">
           You are not currently a member of any workspace. Join a workspace via an invite from your team,
@@ -1209,6 +1212,7 @@ function FirstRunWelcome({
 
   return (
     <section className="rounded-[20px] border border-zk-border bg-zk-surface px-5 py-8 text-center">
+      <CrewScene scene="fishing" width={200} className="mx-auto mb-3" />
       <h2 className="text-lg font-bold text-zk-text">No issues yet</h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-zk-muted">
         This is where reported issues will appear. A good report says what you

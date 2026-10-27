@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BASE_PATH } from "@/lib/base-path";
 import { RelativeTime } from "@/components/relative-time";
+import { CrewScene } from "@/components/crew/crew-scene";
 
 /**
  * The serialized row the server sends and the poll endpoint returns. Kept
@@ -113,6 +114,7 @@ export function DashboardAgents({
         <div id="agents-body">
           {agents.length === 0 ? (
             <div className="px-5 py-10 text-center">
+              <CrewScene scene="dock" width={180} className="mx-auto mb-3" />
               <p className="font-medium text-zk-text">No agents yet</p>
               <p className="mt-1 text-sm text-zk-muted">
                 Pair an agent to let it work on your issues and report back here.

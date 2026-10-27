@@ -27,6 +27,16 @@ describe("InboxAgents", () => {
     expect(screen.getByRole("link", { name: "Manage Pixel" })).toHaveAttribute("href", "/settings/agents");
   });
 
+  it("lets a waiting agent speak up, and draws each agent in its mood", () => {
+    render(<InboxAgents agents={agents} />);
+    expect(screen.getByText("Psst, I have a question for you.")).toBeInTheDocument();
+    expect(document.querySelector("svg[data-mood]")).toHaveAttribute("data-mood", "waiting");
+
+    fireEvent.click(screen.getByRole("button", { name: "Show Pixel" }));
+    expect(screen.queryByText("Psst, I have a question for you.")).toBeNull();
+    expect(document.querySelector("svg[data-mood]")).toHaveAttribute("data-mood", "working");
+  });
+
   it("has no dots for a single agent, and invites adding one when there are none", () => {
     const { rerender } = render(<InboxAgents agents={agents.slice(0, 1)} />);
     expect(screen.queryByRole("group", { name: "Choose an agent" })).toBeNull();

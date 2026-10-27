@@ -1,3 +1,5 @@
+import { LoadingCrew } from "@/components/ui/skeleton";
+
 /**
  * Instant placeholder while the issues list loads (#214), shaped like the
  * list so the layout doesn't jump when content arrives.
@@ -11,6 +13,9 @@ export default function AppLoading() {
   return (
     <div className="space-y-5" role="status" aria-live="polite">
       <span className="sr-only">Loading…</span>
+      <div aria-hidden="true">
+        <LoadingCrew />
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-4" aria-hidden="true">
         <div className="space-y-2">
           <div className="h-8 w-32 rounded-lg bg-zk-chip motion-safe:animate-pulse" />

@@ -19,6 +19,8 @@ import { isSuperAdmin, type AppRole } from "@/lib/roles";
 import { Avatar } from "@/components/avatar";
 import { AccountThemeSelector } from "@/components/theme-toggle";
 import { formatPoints, pointsProgress, TARGET_POINTS } from "@/lib/points/rules";
+import { useNewPoints } from "@/components/crew/use-new-points";
+import "@/components/crew/crew.css";
 import { recentNotificationsAction } from "@/app/actions/notifications";
 import { LocalTime } from "@/components/local-time";
 import { BASE_PATH } from "@/lib/base-path";
@@ -371,24 +373,40 @@ function PointsLink({
   active: boolean;
 }) {
   const progress = pointsProgress(points, solvedTasks, targetPoints);
+  // New points since the last visit get a little pop and a "+N" spark.
+  const gained = useNewPoints(points);
   return (
-    <Link
-      href="/workers"
-      aria-current={active ? "page" : undefined}
-      title="Ranking"
-      className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-semibold ${linkFocus} ${
-        active
-          ? "bg-zk-warn-fg text-zk-surface"
-          : "bg-zk-warn-bg text-zk-warn-fg hover:brightness-95"
-      }`}
-    >
-      <TrophyIcon />
-      <span className="tabular-nums">{formatPoints(points)}</span> pts
-      <span className="sr-only">
-        {" "}
-        of {targetPoints}, {solvedTasks} solved, {progress.pointsPercent}%. Open Ranking
-      </span>
-    </Link>
+    <span className="relative inline-flex shrink-0">
+      <Link
+        href="/workers"
+        aria-current={active ? "page" : undefined}
+        title="Ranking"
+        className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-semibold ${linkFocus} ${
+          active
+            ? "bg-zk-warn-fg text-zk-surface"
+            : "bg-zk-warn-bg text-zk-warn-fg hover:brightness-95"
+        } ${gained > 0 ? "crew-pop" : ""}`}
+      >
+        <TrophyIcon />
+        <span className="tabular-nums">{formatPoints(points)}</span> pts
+        <span className="sr-only">
+          {" "}
+          of {targetPoints}, {solvedTasks} solved, {progress.pointsPercent}%. Open Ranking
+        </span>
+      </Link>
+      {gained > 0 ? (
+        <span aria-hidden="true">
+          <span
+            className="crew-spark right-0 top-full z-10 whitespace-nowrap rounded-full bg-zk-ok-bg px-2 py-0.5 text-[11px] font-bold text-zk-ok-fg"
+            style={{ ["--crew-dy" as string]: "6px" }}
+          >
+            +{formatPoints(gained)} pts
+          </span>
+          <span className="crew-spark -left-1 top-0 text-[11px] text-[#F59E0B]" style={{ ["--crew-dx" as string]: "-10px", ["--crew-dy" as string]: "-6px" }}>✦</span>
+          <span className="crew-spark bottom-0 left-1/2 text-[10px] text-[#F59E0B]" style={{ ["--crew-dx" as string]: "8px", ["--crew-dy" as string]: "12px" }}>✦</span>
+        </span>
+      ) : null}
+    </span>
   );
 }
 
