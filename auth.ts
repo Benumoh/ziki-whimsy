@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validations/issue";
 import authConfig from "@/auth.config";
 import { cleanEnv } from "@/lib/env-clean";
-import { isPasswordAuthEnabled } from "@/lib/auth-mode";
+import { demoAutoSignInEmail, isPasswordAuthEnabled } from "@/lib/auth-mode";
 import { upsertGoogleUser, type GoogleAccount } from "@/lib/google-user";
 import { isGoogleEmailAllowed, getGoogleAllowlist } from "@/lib/google-allowlist";
 import { clientIpFrom, consumeAuthRateLimit } from "@/lib/rate-limit";
@@ -24,6 +24,7 @@ const googleClientSecret = cleanEnv(
 const googleConfigured = Boolean(googleClientId) && Boolean(googleClientSecret);
 // Google-only in production; see lib/auth-mode.ts for the AUTH_PASSWORD_LOGIN flag.
 const passwordAuthEnabled = isPasswordAuthEnabled();
+const demoSignInEmail = demoAutoSignInEmail();
 
 if (process.env.NODE_ENV !== "test") {
   console.log("[auth:config] Initializing NextAuth with Google OAuth status:", {
@@ -50,6 +51,29 @@ export const { handlers, auth, signIn, signOut, unstable_update: updateSession }
           Google({
             clientId: googleClientId!,
             clientSecret: googleClientSecret!,
+          }),
+        ]
+      : []),
+
+    // Public demo deploys only: signs every visitor in as the demo owner,
+    // with no password, so the product opens without a login screen.
+    ...(demoSignInEmail
+      ? [
+          Credentials({
+            id: "demo",
+            name: "Demo",
+            credentials: {},
+            async authorize() {
+              const user = await prisma.user.findUnique({ where: { email: demoSignInEmail } });
+              if (!user) return null;
+              return {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                sessionVersion: user.sessionVersion,
+              };
+            },
           }),
         ]
       : []),

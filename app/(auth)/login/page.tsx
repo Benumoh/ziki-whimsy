@@ -1,6 +1,7 @@
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { LoginForm } from "@/components/login-form";
-import { isPasswordAuthEnabled } from "@/lib/auth-mode";
+import { demoAutoSignInEmail, isPasswordAuthEnabled } from "@/lib/auth-mode";
+import { DemoAutoSignIn } from "@/components/demo-auto-sign-in";
 import { isGoogleOAuthConfigured } from "@/lib/google-oauth";
 import { safeCallbackUrl } from "@/lib/safe-callback-url";
 import { AuthLegalNote, AuthSplitFrame } from "./auth-split-frame";
@@ -66,7 +67,9 @@ export default async function LoginPage({
           </div>
         ) : null}
 
-        {passwordEnabled ? (
+        {demoAutoSignInEmail() ? (
+          <DemoAutoSignIn callbackUrl={callbackUrl} />
+        ) : passwordEnabled ? (
           <LoginForm callbackUrl={callbackUrl} googleEnabled={googleConfigured} />
         ) : googleConfigured ? (
           <GoogleSignInButton callbackUrl={callbackUrl} />

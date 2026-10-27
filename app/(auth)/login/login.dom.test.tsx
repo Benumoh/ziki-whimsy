@@ -7,6 +7,11 @@ import LoginPage from "./page";
 
 vi.mock("@/lib/auth-mode", () => ({
   isPasswordAuthEnabled: () => false,
+  demoAutoSignInEmail: () => null,
+}));
+
+vi.mock("@/app/actions/demo-sign-in", () => ({
+  demoSignInAction: vi.fn(),
 }));
 
 vi.mock("@/lib/google-oauth", () => ({

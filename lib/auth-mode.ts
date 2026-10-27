@@ -28,3 +28,13 @@ export function isPasswordAuthEnabled(
   if (flag === "false" || flag === "0") return false;
   return env.NODE_ENV !== "production";
 }
+
+/**
+ * The account a public demo deploy signs every visitor into, from
+ * `DEMO_AUTO_SIGNIN_EMAIL`; unset everywhere else, which keeps the login.
+ */
+export function demoAutoSignInEmail(
+  env: { DEMO_AUTO_SIGNIN_EMAIL?: string } = process.env as { DEMO_AUTO_SIGNIN_EMAIL?: string },
+): string | null {
+  return cleanEnv(env.DEMO_AUTO_SIGNIN_EMAIL)?.toLowerCase() || null;
+}
