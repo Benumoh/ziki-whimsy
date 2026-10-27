@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPasswordAuthEnabled } from "./auth-mode";
+import { demoAutoSignInEmail, isPasswordAuthEnabled } from "./auth-mode";
 
 describe("isPasswordAuthEnabled", () => {
   it("is off in production by default", () => {
@@ -37,5 +37,16 @@ describe("isPasswordAuthEnabled", () => {
     expect(
       isPasswordAuthEnabled({ NODE_ENV: "production", AUTH_PASSWORD_LOGIN: "yes" }),
     ).toBe(false);
+  });
+});
+
+describe("demoAutoSignInEmail", () => {
+  it("is off unless a demo deploy names the account", () => {
+    expect(demoAutoSignInEmail({})).toBeNull();
+    expect(demoAutoSignInEmail({ DEMO_AUTO_SIGNIN_EMAIL: "  " })).toBeNull();
+  });
+
+  it("returns the cleaned, lower-cased email", () => {
+    expect(demoAutoSignInEmail({ DEMO_AUTO_SIGNIN_EMAIL: ' "Alice@Zendor.dev" ' })).toBe("alice@zendor.dev");
   });
 });
