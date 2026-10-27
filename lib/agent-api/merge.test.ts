@@ -612,6 +612,22 @@ describe("acceptFix: a successful accept (#434)", () => {
     expect(db.agentMistake.create).toHaveBeenCalled();
   });
 
+  it("rejecting a fix via action and feedback options sets reviewStatus to rejected", async () => {
+    db.bug.findFirst.mockResolvedValue(bugRow());
+    db.comment.create.mockResolvedValue({ id: "c-1" });
+
+    const result = await acceptFix(merger("m1", "mo", "merger"), "bug1", {}, {
+      action: "reject",
+      feedback: "Feedback via action field.",
+    });
+
+    expect(result).toEqual({ status: 200, accepted: false, notes: "Feedback via action field." });
+    expect(db.bug.update).toHaveBeenCalledWith({
+      where: { id: "bug1" },
+      data: { reviewStatus: "rejected" },
+    });
+  });
+
   it("admin merger fails closed when GitHub client is unavailable", async () => {
     confirmWith("rob", "sam");
     verdict("r1", "rob");

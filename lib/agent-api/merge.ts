@@ -105,7 +105,9 @@ export type AcceptFixDeps = {
 
 export type AcceptFixOptions = {
   verdict?: "accept" | "reject";
+  action?: "accept" | "reject";
   notes?: string;
+  feedback?: string;
   mistake?: Partial<RecordMistakeInput> & {
     title: string;
     antiPattern: string;
@@ -141,8 +143,11 @@ export async function acceptFix(
   });
   if (!bug) return { status: 404, error: "not_found", message: "No such issue in this agent's tenant." };
 
-  if (options.verdict === "reject") {
-    const rejectNotes = options.notes?.trim() || "Fix rejected by merger agent.";
+  const verdict = options.action ?? options.verdict ?? "accept";
+  const notes = options.feedback ?? options.notes;
+
+  if (verdict === "reject") {
+    const rejectNotes = notes?.trim() || "Fix rejected by merger agent.";
     await prisma.$transaction(async (tx) => {
       await tx.bug.update({
         where: { id: bug.id },
