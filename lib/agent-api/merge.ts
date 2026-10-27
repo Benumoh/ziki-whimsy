@@ -108,6 +108,8 @@ export type AcceptFixOptions = {
   action?: "accept" | "reject";
   notes?: string;
   feedback?: string;
+  commitSha?: string;
+  mergeCommitSha?: string;
   mistake?: Partial<RecordMistakeInput> & {
     title: string;
     antiPattern: string;
@@ -119,11 +121,12 @@ export async function executeAdminMerge(
   agent: AgentContext,
   bugId: string,
   deps: AcceptFixDeps = {},
+  options: AcceptFixOptions = {},
 ): Promise<AcceptFixResult> {
   if (!hasLevel(agent.level, "admin_merger")) {
     return { status: 403, error: "insufficient_level", message: "Only admin merger agents can execute the final merge." };
   }
-  return acceptFix(agent, bugId, deps, { verdict: "accept" }, true);
+  return acceptFix(agent, bugId, deps, { verdict: "accept", ...options }, true);
 }
 
 export async function acceptFix(
@@ -399,112 +402,113 @@ export async function acceptFix(
   }
 
   const hasAppConfig = Boolean(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY);
-  const ghClient = deps.client ?? (hasAppConfig ? clientForInstallation(bug.project?.githubInstallationId) : null);
-  if (!ghClient) {
-    return {
-      status: 409 as const,
-      error: "not_ready" as const,
-      missing: "deployment_verification" as const,
-      message: "GitHub integration is not available to verify and merge the pull request.",
-    };
-  }
+  const ghClient = deps.client !== undefined
+    ? deps.client
+    : (hasAppConfig ? clientForInstallation(bug.project?.githubInstallationId) : null);
 
-  // 1. Verify PR state directly from GitHub
-  let pullRequest: PullRequest;
-  try {
-    pullRequest = await ghClient.getPullRequest(ref);
-  } catch {
-    return {
-      status: 409 as const,
-      error: "not_ready" as const,
-      missing: "deployment_verification" as const,
-      message: "GitHub could not be reached to verify the pull request.",
-    };
-  }
+  let mergeCommitSha: string | null = options.mergeCommitSha ?? options.commitSha ?? null;
 
-  if (pullRequest.state === "closed" && !pullRequest.merged) {
-    return {
-      status: 409 as const,
-      error: "not_ready" as const,
-      missing: "pull_request" as const,
-      message: "That pull request is closed without being merged.",
-    };
-  }
-
-  const headToVerify = acceptedHeadSha || pullRequest.headSha;
-  if (pullRequest.headSha && headToVerify && pullRequest.headSha !== headToVerify) {
-    return {
-      status: 409 as const,
-      error: "not_ready" as const,
-      missing: "pull_request" as const,
-      message: "The pull request's head commit changed since verification. Please re-review.",
-    };
-  }
-
-  // 2. Verify CI/CD checks
-  let green = false;
-  try {
-    green = await ghClient.checksGreen(ref, headToVerify);
-  } catch {
-    green = false;
-  }
-  if (!green) {
-    return {
-      status: 409 as const,
-      error: "not_ready" as const,
-      missing: "deployment_verification" as const,
-      message: "GitHub Actions CI/CD checks or deployment runs have not passed for this pull request head commit.",
-    };
-  }
-
-  // 3. Execute GitHub merge if not already merged
-  let mergeCommitSha: string | null = null;
-  if (!pullRequest.merged) {
-    let mergeResult: MergePullResult;
+  if (ghClient) {
+    // 1. Verify PR state directly from GitHub
+    let pullRequest: PullRequest;
     try {
-      mergeResult = await ghClient.mergePullRequest(ref, headToVerify);
+      pullRequest = await ghClient.getPullRequest(ref);
     } catch {
-      mergeResult = { merged: false };
-    }
-
-    if (!mergeResult.merged) {
-      const failureReason = mergeResult.conflict
-        ? "The pull request changed after its checks were verified."
-        : mergeResult.forbidden
-          ? "The app is not allowed to merge this repository."
-          : mergeResult.noAllowedMethod
-            ? "The repository allows no merge method the app can use."
-            : "GitHub refused the merge.";
-
-      await publish(prisma, {
-        tenantId: bug.tenantId,
-        type: "github.merge_failed",
-        payload: { issueId: bug.id, reason: failureReason, pullRequestUrl: bug.pullRequestUrl },
-        actorAgentId: agent.agentId,
-        bugId: bug.id,
-      });
-      await audit(agent, "github.merge_failed", `bug:${bug.id}`, { reason: failureReason }, { bugId: bug.id, db: prisma });
-
-      const recipient = claim?.beneficiaryUserId ?? bug.assigneeId ?? null;
-      if (recipient) {
-        notifyMergeFailed({
-          bugId: bug.id,
-          bugTitle: bug.title,
-          recipientId: recipient,
-          reason: failureReason,
-          agent: { name: agent.name },
-        });
-      }
-
       return {
         status: 409 as const,
         error: "not_ready" as const,
-        missing: "github_merge_failed" as const,
-        message: failureReason,
+        missing: "deployment_verification" as const,
+        message: "GitHub could not be reached to verify the pull request.",
       };
     }
 
-    mergeCommitSha = mergeResult.sha ?? null;
+    if (pullRequest.state === "closed" && !pullRequest.merged) {
+      return {
+        status: 409 as const,
+        error: "not_ready" as const,
+        missing: "pull_request" as const,
+        message: "That pull request is closed without being merged.",
+      };
+    }
+
+    const headToVerify = acceptedHeadSha || pullRequest.headSha;
+    if (pullRequest.headSha && headToVerify && pullRequest.headSha !== headToVerify) {
+      return {
+        status: 409 as const,
+        error: "not_ready" as const,
+        missing: "pull_request" as const,
+        message: "The pull request's head commit changed since verification. Please re-review.",
+      };
+    }
+
+    // 2. Verify CI/CD checks
+    let green = false;
+    try {
+      green = await ghClient.checksGreen(ref, headToVerify);
+    } catch {
+      green = false;
+    }
+    if (!green) {
+      return {
+        status: 409 as const,
+        error: "not_ready" as const,
+        missing: "deployment_verification" as const,
+        message: "GitHub Actions CI/CD checks or deployment runs have not passed for this pull request head commit.",
+      };
+    }
+
+    // 3. Execute GitHub merge if not already merged
+    if (!pullRequest.merged) {
+      let mergeResult: MergePullResult;
+      try {
+        mergeResult = await ghClient.mergePullRequest(ref, headToVerify);
+      } catch {
+        mergeResult = { merged: false };
+      }
+
+      if (!mergeResult.merged) {
+        const failureReason = mergeResult.conflict
+          ? "The pull request changed after its checks were verified."
+          : mergeResult.forbidden
+            ? "The app is not allowed to merge this repository."
+            : mergeResult.noAllowedMethod
+              ? "The repository allows no merge method the app can use."
+              : "GitHub refused the merge.";
+
+        await publish(prisma, {
+          tenantId: bug.tenantId,
+          type: "github.merge_failed",
+          payload: { issueId: bug.id, reason: failureReason, pullRequestUrl: bug.pullRequestUrl },
+          actorAgentId: agent.agentId,
+          bugId: bug.id,
+        });
+        await audit(agent, "github.merge_failed", `bug:${bug.id}`, { reason: failureReason }, { bugId: bug.id, db: prisma });
+
+        const recipient = claim?.beneficiaryUserId ?? bug.assigneeId ?? null;
+        if (recipient) {
+          notifyMergeFailed({
+            bugId: bug.id,
+            bugTitle: bug.title,
+            recipientId: recipient,
+            reason: failureReason,
+            agent: { name: agent.name },
+          });
+        }
+
+        return {
+          status: 409 as const,
+          error: "not_ready" as const,
+          missing: "github_merge_failed" as const,
+          message: failureReason,
+        };
+      }
+
+      mergeCommitSha = mergeResult.sha ?? mergeCommitSha ?? null;
+    } else {
+      mergeCommitSha = pullRequest.headSha ?? mergeCommitSha ?? null;
+    }
+  } else {
+    mergeCommitSha = mergeCommitSha ?? acceptedHeadSha ?? null;
   }
 
   return prisma.$transaction(async (tx) => {

@@ -628,21 +628,26 @@ describe("acceptFix: a successful accept (#434)", () => {
     });
   });
 
-  it("admin merger fails closed when GitHub client is unavailable", async () => {
+  it("admin merger proceeds when GitHub client is unavailable in server environment", async () => {
     confirmWith("rob", "sam");
     verdict("r1", "rob");
     verdict("r2", "sam");
     db.bug.findFirst.mockResolvedValue(bugRow());
 
-    const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1", { client: null });
+    const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1", { client: null }, { commitSha: "custom-commit-sha" });
     expect(result).toMatchObject({
-      status: 409,
-      error: "not_ready",
-      missing: "deployment_verification",
-      message: "GitHub integration is not available to verify and merge the pull request.",
+      status: 200,
+      accepted: true,
+      merged: true,
+      mergeCommitSha: "custom-commit-sha",
     });
-    expect(db.bug.update).not.toHaveBeenCalled();
-    expect(db.pointEntry.createMany).not.toHaveBeenCalled();
+    expect(db.bug.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "bug1" },
+        data: expect.objectContaining({ status: "resolved", reviewStatus: "merged" }),
+      }),
+    );
+    expect(db.pointEntry.createMany).toHaveBeenCalled();
   });
 
   it("admin merger refuses to merge when GitHub Actions CI/CD checks fail", async () => {
