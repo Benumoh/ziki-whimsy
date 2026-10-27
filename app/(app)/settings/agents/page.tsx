@@ -182,6 +182,9 @@ export default async function AgentsSettingsPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Link href="/activity" className={agentsSecondaryBtn}>
+              Activity &amp; Approvals
+            </Link>
             <Link href="/settings/audit" className={agentsSecondaryBtn}>
               Agent audit log
             </Link>
