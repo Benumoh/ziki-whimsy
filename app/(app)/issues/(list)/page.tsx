@@ -9,6 +9,7 @@ import { activeBulkOptions, loadBulkAssignees } from "@/lib/admin-list-lookups";
 import { auth } from "@/auth";
 import { requireUser } from "@/lib/auth-helpers";
 import { InboxButton } from "@/components/inbox-button";
+import { MergeIcon } from "@/components/merge-path";
 import { InboxAgents } from "@/components/inbox-agents";
 import { loadOwnAgents, type DashboardAgent } from "@/lib/dashboard-overview";
 import { agentWorkDone, describeWorkDone, type AgentWorkDone } from "@/lib/agent-work";
@@ -850,6 +851,16 @@ export default async function BugsPage({
         <div className="issues-tabs-row flex items-center gap-2.5">
           {!isDeletedView ? (
             <InboxButton href={statusHref(null)} active={isEscalatedView} count={escalatedCount} />
+          ) : null}
+          {!isDeletedView ? (
+            <Link
+              href="/issues/history"
+              aria-label="Merge history"
+              title="Merge history"
+              className="inline-flex h-[42px] shrink-0 items-center gap-2 rounded-[10px] border border-zk-divider bg-zk-chip px-3 text-[13px] font-semibold text-zk-text hover:bg-zk-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zk-accent max-sm:h-9"
+            >
+              <MergeIcon size={16} />
+            </Link>
           ) : null}
           {!isDeletedView ? (
             <nav aria-label="Issue status" className="issues-status-nav ml-auto min-w-0">
