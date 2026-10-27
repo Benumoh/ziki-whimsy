@@ -1,14 +1,14 @@
 {
   "framework": "nextjs",
-  "buildCommand": "prisma generate && prisma migrate deploy && next build --webpack",
+  "buildCommand": "PATH=\"$PWD/node_modules/.bin:$PATH\" sh scripts/vercel-build.sh",
   "crons": [
     {
       "path": "/api/v1/webhooks/dispatch",
-      "schedule": "* * * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/internal/cron",
-      "schedule": "* * * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }
