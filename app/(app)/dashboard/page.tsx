@@ -27,6 +27,8 @@ import {
 import { formatPoints, TARGET_POINTS } from "@/lib/points/rules";
 import { prisma } from "@/lib/prisma";
 import { openIssueStages } from "@/lib/issue-stage";
+import { growthOf, wiltingDays } from "@/lib/issue-garden";
+import { WorkspaceGarden, type GardenCounts } from "@/components/garden/workspace-garden";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -84,6 +86,27 @@ function buildStats(input: {
       note: "of issues assigned to me",
     },
   ];
+}
+
+/** How many of the workspace's issues sit at each growth stage, and how many wilt. */
+async function loadWorkspaceGarden(tenantId: string, now: Date): Promise<GardenCounts> {
+  const where = { ...bugInTenant(tenantId), isDeleted: false };
+  const [finished, unfinished, stages] = await Promise.all([
+    prisma.bug.groupBy({ by: ["status"], where: { ...where, status: { in: ["resolved", "closed"] } }, _count: true }),
+    prisma.bug.findMany({
+      where: { ...where, status: { in: ["open", "in_progress"] } },
+      select: { id: true, status: true, reviewStatus: true, updatedAt: true },
+    }),
+    openIssueStages(prisma, bugInTenant(tenantId)),
+  ]);
+
+  const counts: GardenCounts = { seed: 0, sprout: 0, sapling: 0, bud: 0, blossom: 0, bloom: 0, fallen: 0, wilting: 0 };
+  for (const group of finished) counts[group.status === "resolved" ? "bloom" : "fallen"] += group._count;
+  for (const bug of unfinished) {
+    counts[growthOf({ status: bug.status, stage: stages.get(bug.id), reviewStatus: bug.reviewStatus })] += 1;
+    if (wiltingDays({ status: bug.status, updatedAt: bug.updatedAt, now }) !== null) counts.wilting += 1;
+  }
+  return counts;
 }
 
 async function loadAssignedIssues(
@@ -173,8 +196,14 @@ export default async function DashboardPage() {
   let highPriorityAssigned = 0;
   let resolvedAssigned = 0;
   let assignedIssues: OverviewAssignedIssue[] = [];
+  let garden: GardenCounts | null = null;
 
   if (tenantId) {
+    try {
+      garden = await loadWorkspaceGarden(tenantId, now);
+    } catch (error) {
+      console.error("[dashboard] workspace garden failed", error);
+    }
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const base = { ...bugInTenant(tenantId), isDeleted: false as const };
 
@@ -265,6 +294,8 @@ export default async function DashboardPage() {
       </div>
 
       <OverviewStatCards stats={stats} />
+
+      {garden ? <WorkspaceGarden counts={garden} /> : null}
 
       <AssignedIssuesTable issues={assignedIssues} />
 

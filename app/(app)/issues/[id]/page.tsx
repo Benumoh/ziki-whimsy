@@ -83,6 +83,8 @@ import { tenantMemberWhere } from "@/lib/tenant-mentions";
 import { readAgentResolution } from "@/lib/agent-resolution";
 import { AgentResolvedNotice } from "@/components/agent-resolved-notice";
 import { issueStageLabels } from "@/lib/issue-stage";
+import { growthOf, wiltingDays } from "@/lib/issue-garden";
+import { GardenBed } from "@/components/garden/garden-bed";
 import { ReviewStatusBadge } from "@/components/review-status-badge";
 import { SubmissionEvidence } from "@/components/submission-evidence";
 import {
@@ -874,6 +876,13 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
                   <span className={`${issueChipBaseClass} bg-zk-chip text-zk-text2`}>{bug.category.name}</span>
                 ) : null}
               </p>
+            ) : null}
+
+            {!bug.isDeleted ? (
+              <GardenBed
+                growth={growthOf({ status: bug.status, stage: intakeStage, reviewStatus: bug.reviewStatus })}
+                wiltingDays={wiltingDays({ status: bug.status, updatedAt: bug.updatedAt })}
+              />
             ) : null}
           </div>
 

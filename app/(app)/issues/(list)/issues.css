@@ -108,7 +108,7 @@
 .issues-row-meta { margin-top: 1px; line-height: 16px; flex-wrap: wrap; gap: 8px; font-size: 12px; }
 .issues-row-meta .font-mono { font-family: inherit; }
 /* Status: Idea, Confirmed (bots), Ready for bids, or who is working and for how long. */
-.issues-status-cell { display: flex; width: 176px; flex: 0 0 176px; align-items: center; font-size: 12px; line-height: 16px; }
+.issues-status-cell { display: flex; width: 204px; flex: 0 0 204px; align-items: center; font-size: 12px; line-height: 16px; }
 .issues-priority { display: block; width: 62px; flex: 0 0 62px; }
 .issues-priority-bars { display: inline-flex; height: 16px; align-items: flex-end; gap: 2px; }
 .issues-priority-bars i { width: 3px; background: var(--zk-divider); }

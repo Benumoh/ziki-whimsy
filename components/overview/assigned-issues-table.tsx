@@ -5,6 +5,8 @@ import { formatIssueNumber } from "@/lib/issue-number";
 import { issuePath } from "@/lib/issue-ref";
 import { formatShortAge } from "@/lib/format";
 import { issueStageLabels, type IssueStage } from "@/lib/issue-stage";
+import { growthLabels, growthOf } from "@/lib/issue-garden";
+import { IssuePlant } from "@/components/garden/issue-plant";
 import { severityLabel, statusLabels } from "@/lib/labels";
 
 export type OverviewAssignedIssue = {
@@ -104,7 +106,7 @@ export function AssignedIssuesTable({ issues }: { issues: OverviewAssignedIssue[
             <span className="w-[92px]">Type</span>
             <span className="w-24">Priority</span>
             <span className="w-[76px]">Status</span>
-            <span className="w-[104px]">Stage</span>
+            <span className="w-[132px]">Stage</span>
             <span className="w-[84px]">Reported</span>
           </div>
 
@@ -206,7 +208,8 @@ export function AssignedIssuesTable({ issues }: { issues: OverviewAssignedIssue[
                         {statusLabels[issue.status]}
                       </span>
                     </span>
-                    <span className="w-[104px] shrink-0">
+                    <span className="flex w-[132px] shrink-0 items-center gap-1">
+                      <IssuePlant growth={growthOf({ status: issue.status, stage: issue.stage })} size={22} />
                       {stage ? (
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${stage.bg} ${stage.fg}`}
@@ -215,7 +218,7 @@ export function AssignedIssuesTable({ issues }: { issues: OverviewAssignedIssue[
                           {stage.label}
                         </span>
                       ) : (
-                        <span className="text-[13px] text-zk-muted">—</span>
+                        <span className="text-[13px] text-zk-muted">{growthLabels[growthOf({ status: issue.status, stage: issue.stage })]}</span>
                       )}
                     </span>
                     <span className="w-[84px] shrink-0 text-[13px] text-zk-text2">

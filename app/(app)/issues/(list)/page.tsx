@@ -78,6 +78,8 @@ import {
 } from "@/lib/platform-filter";
 import { PlatformMenu, type PlatformTab } from "@/components/platform-tabs";
 import { IssueRowStatus } from "@/components/issue-row-status";
+import { IssuePlant } from "@/components/garden/issue-plant";
+import { growthOf, wiltingDays } from "@/lib/issue-garden";
 import { IssuesToolsToggle } from "@/components/issues-tools-toggle";
 import { LoadError } from "@/components/load-error";
 import { logLoadFailure } from "@/lib/load-error";
@@ -513,6 +515,7 @@ export default async function BugsPage({
         duplicateOf: showDuplicates ? { select: { number: true } } : false,
         createdAt: true,
         updatedAt: true,
+        reviewStatus: true,
         type: { select: { name: true } },
         reporter: { select: { name: true, role: true, image: true } },
         assignee: { select: { name: true, role: true, image: true } },
@@ -1019,8 +1022,17 @@ export default async function BugsPage({
                     const work = claim || bug.status === "in_progress"
                       ? { person: claim?.beneficiary?.name ?? bug.assignee?.name ?? null, since: claim ? (claim.claimedAt ?? claim.createdAt) : null }
                       : null;
+                    // The issue garden: a plant for how far the issue has grown, wilting when left alone.
+                    const wilting = wiltingDays({ status: bug.status, updatedAt: bug.updatedAt });
                     const rowStatus = (
-                      <IssueRowStatus status={bug.status} stage={stage} botConfirmations={botConfirmations.get(bug.id) ?? 0} votes={bug.voteCount} work={work} />
+                      <span
+                        className="inline-flex min-w-0 items-center gap-1.5"
+                        title={wilting !== null ? `Wilting: no activity for ${wilting} days` : undefined}
+                      >
+                        <IssuePlant growth={growthOf({ status: bug.status, stage, working: Boolean(claim), reviewStatus: bug.reviewStatus })} wilting={wilting !== null} size={26} />
+                        <IssueRowStatus status={bug.status} stage={stage} botConfirmations={botConfirmations.get(bug.id) ?? 0} votes={bug.voteCount} work={work} />
+                        {wilting !== null ? <span className="sr-only">, wilting: no activity for {wilting} days</span> : null}
+                      </span>
                     );
 
                     return (
