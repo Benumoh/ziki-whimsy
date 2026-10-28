@@ -207,6 +207,8 @@ export type DashboardAgent = {
   /** What the table's "Current activity" column says. Never invented. */
   activity: string;
   lastSeenAt: Date | null;
+  /** The newest question it's waiting on you to answer, if any. */
+  question: { id: string; body: string } | null;
 };
 
 /**
@@ -270,7 +272,7 @@ export async function loadOwnAgents({
         where: { answeredAt: null },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 1,
-        select: { createdAt: true },
+        select: { id: true, body: true, createdAt: true },
       },
       claims: {
         where: { releasedAt: null, status: "active" },
@@ -343,6 +345,7 @@ export async function loadOwnAgents({
       status,
       activity,
       lastSeenAt,
+      question: agent.questions[0] ? { id: agent.questions[0].id, body: agent.questions[0].body } : null,
     };
   });
 }

@@ -960,6 +960,8 @@ export default async function BugsPage({
                       status: agent.status,
                       activity: agent.activity,
                       done: done ? `Last 30 days: ${done}` : "Nothing done in the last 30 days",
+                      question: agent.question,
+                      level: agent.level,
                     };
                   })}
                 />

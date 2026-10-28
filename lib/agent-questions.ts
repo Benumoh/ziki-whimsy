@@ -393,7 +393,7 @@ export async function ownerQuestion(userId: string, tenantId: string, questionId
       answer: true,
       answeredAt: true,
       createdAt: true,
-      agent: { select: { name: true } },
+      agent: { select: { name: true, level: true } },
       bug: { select: { id: true, number: true, title: true } },
     },
   });
