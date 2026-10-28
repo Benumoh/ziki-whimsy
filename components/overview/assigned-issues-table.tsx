@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Severity, Status } from "@prisma/client";
 import { OverviewVote } from "@/components/overview/overview-vote";
-import { CrewScene } from "@/components/crew/crew-scene";
+import { MidnightCanvas } from "@/components/crew/midnight/midnight-canvas";
 import { formatIssueNumber } from "@/lib/issue-number";
 import { issuePath } from "@/lib/issue-ref";
 import { formatShortAge } from "@/lib/format";
@@ -111,7 +111,9 @@ export function AssignedIssuesTable({ issues }: { issues: OverviewAssignedIssue[
 
           {issues.length === 0 ? (
             <div className="flex flex-col items-center gap-1.5 px-4 py-12 text-center">
-              <CrewScene scene="fishing" width={190} className="mb-2" />
+              <div className="mb-3 w-full max-w-[640px]">
+                <MidnightCanvas theme="assignments" />
+              </div>
               <span className="font-bold text-zk-text">Nothing assigned to you</span>
               <span className="text-zk-muted">Issues assigned to you will show up here.</span>
             </div>

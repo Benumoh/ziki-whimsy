@@ -5,7 +5,7 @@ import { currentTenantIdFor } from "@/lib/tenant-context";
 import { listOwnerQuestions, parseEscalationBody, type EscalationType } from "@/lib/agent-questions";
 import { LocalTime } from "@/components/local-time";
 import { EscalationTypeBadge, QuickResolveButtons } from "./escalation-controls";
-import { CrewScene } from "@/components/crew/crew-scene";
+import { MidnightCanvas } from "@/components/crew/midnight/midnight-canvas";
 
 export const metadata = { title: "Agent Escalations" };
 
@@ -227,7 +227,9 @@ export default async function EscalationsPage({
         </ul>
       ) : (
         <div className="rounded-[20px] border border-dashed border-zk-border bg-zk-surface p-8 text-center">
-          <CrewScene scene="searching" width={170} className="mx-auto mb-3" />
+          <div className="mb-4">
+            <MidnightCanvas theme="escalations" />
+          </div>
           <p className="text-sm font-semibold text-zk-text">No escalations match this filter.</p>
           <p className="mt-1 text-xs text-zk-muted">
             Agents ask for blockers, permissions, and guidance here.
