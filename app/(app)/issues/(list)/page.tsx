@@ -79,6 +79,7 @@ import {
 } from "@/lib/platform-filter";
 import { PlatformMenu, type PlatformTab } from "@/components/platform-tabs";
 import { IssueRowStatus } from "@/components/issue-row-status";
+import { mergePathOf } from "@/lib/merge-history";
 import { IssueRowStageTallies } from "@/components/issue-row-stage-tallies";
 import { claimDecisionKind, payloadMerged, tallyStages, type DecisionLike, type StageTallies } from "@/lib/decision-stages";
 import { IssuesToolsToggle } from "@/components/issues-tools-toggle";
@@ -532,6 +533,9 @@ export default async function BugsPage({
         duplicateOf: showDuplicates ? { select: { number: true } } : false,
         createdAt: true,
         updatedAt: true,
+        // A merged fix shows its dev → staging → main chips in the status column.
+        reviewStatus: true,
+        pullRequestUrl: true,
         type: { select: { name: true } },
         reporter: { select: { name: true, role: true, image: true } },
         assignee: { select: { name: true, role: true, image: true } },
@@ -1106,7 +1110,8 @@ export default async function BugsPage({
                       ? { person: claim?.beneficiary?.name ?? bug.assignee?.name ?? null, since: claim ? (claim.claimedAt ?? claim.createdAt) : null }
                       : null;
                     const rowStatus = (
-                      <IssueRowStatus status={bug.status} stage={stage} botConfirmations={botConfirmations.get(bug.id) ?? 0} votes={bug.voteCount} work={work} />
+                      <IssueRowStatus status={bug.status} stage={stage} botConfirmations={botConfirmations.get(bug.id) ?? 0} votes={bug.voteCount} work={work}
+                        mergePath={bug.reviewStatus === "merged" ? mergePathOf(bug) : null} />
                     );
 
                     return (
