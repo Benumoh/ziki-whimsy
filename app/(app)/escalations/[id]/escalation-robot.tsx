@@ -5,10 +5,11 @@ import { AgentGraphic } from "@/components/agent-graphic";
 import "@/components/crew/crew.css";
 
 /**
- * The asking agent on its escalation: waiting with its "!" until you respond,
- * then, the moment your answer lands (the page re-renders with it answered),
- * it hops, turns green and thanks you. Coming back to an already answered
- * escalation just shows it back at work.
+ * The asking agent on its escalation: not idly waiting but drafting the
+ * resolution (the incident commander below) until you respond, then, the
+ * moment your answer lands (the page re-renders with it answered), it hops,
+ * turns green and thanks you. Coming back to an already answered escalation
+ * just shows it back at work.
  */
 export function EscalationRobot({ name, level, answered }: { name: string; level: string | null; answered: boolean }) {
   const wasAnswered = useRef(answered);
@@ -31,15 +32,19 @@ export function EscalationRobot({ name, level, answered }: { name: string; level
     wasAnswered.current = answered;
   }, [answered]);
 
-  const says = justAnswered ? "Thanks! Back to it." : answered ? "Got your answer. On it." : "Waiting for your call…";
+  const says = justAnswered
+    ? "Thanks! Back to it."
+    : answered
+      ? "Got your answer. On it."
+      : "Not waiting around: I've drafted the fix below.";
   return (
     <div className="flex items-center gap-2.5" aria-live="polite">
       <span key={justAnswered ? "cheer" : "rest"} className={justAnswered ? "crew-hop" : "inline-flex"}>
-        <AgentGraphic name={name} status={answered ? "working" : "waiting"} level={level} size={44} />
+        <AgentGraphic name={name} status="working" level={level} size={44} />
       </span>
       <span
         className={`rounded-xl rounded-bl-sm px-2.5 py-1 text-xs font-semibold ${
-          answered ? "bg-zk-ok-bg text-zk-ok-fg" : "bg-zk-warn-bg text-zk-warn-fg"
+          answered ? "bg-zk-ok-bg text-zk-ok-fg" : "bg-zk-tint text-zk-accent"
         } ${justAnswered ? "crew-pop" : ""}`}
       >
         {says}

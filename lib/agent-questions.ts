@@ -393,8 +393,18 @@ export async function ownerQuestion(userId: string, tenantId: string, questionId
       answer: true,
       answeredAt: true,
       createdAt: true,
-      agent: { select: { name: true, level: true } },
+      agent: { select: { id: true, name: true, level: true } },
       bug: { select: { id: true, number: true, title: true } },
     },
+  });
+}
+
+/** The agent's earlier escalations to this owner, newest first: how they were answered, and how fast. */
+export async function ownerAgentHistory(userId: string, agentId: string, excludeId: string) {
+  return prisma.agentQuestion.findMany({
+    where: { ownerUserId: userId, agentId, id: { not: excludeId } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: { createdAt: true, answeredAt: true, answer: true },
   });
 }

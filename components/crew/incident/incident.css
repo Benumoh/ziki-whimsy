@@ -1,0 +1,24 @@
+/*
+ * Protocol: Autonomous Incident Commander. Each stage arrives, the running
+ * one pulses, and the simulation's bars fill. All of it holds still under
+ * reduced motion (the rule at the end).
+ */
+@keyframes icmd-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes icmd-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.icmd-in { animation: icmd-in 0.3s ease-out both; }
+.icmd-pulse { animation: icmd-pulse 0.9s ease-in-out infinite; }
+.icmd-bar { transition: width 0.9s cubic-bezier(0.3, 0.7, 0.3, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="icmd-"] {
+    animation: none !important;
+    transition: none !important;
+  }
+}
