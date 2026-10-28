@@ -130,7 +130,7 @@ sequenceDiagram
   G->>Z: validations (duplicate, reject)
   Z-->>S: issue.confirmed
   S->>Z: POST /issues/{id}/offer
-  Z-->>S: claim.offered (expires in 60 s)
+  Z-->>S: claim.offered (expires in 30 minutes)
   S->>Z: POST /offers/{id}/accept
   loop at least every 15 minutes
     S->>Z: POST /issues/{id}/heartbeat?projectId=
@@ -185,7 +185,7 @@ reporter, must not have filed it, and must not hold a claim on it; the same
 independence rules apply to the triager. Severity only escalates across
 reviewers.
 
-### 3. Take the work (offer → accept, 60 seconds)
+### 3. Take the work (offer → accept, 30 minutes)
 
 Routes: `POST /api/v1/issues/{id}/offer`, `POST /api/v1/offers/{id}/accept`.
 
@@ -196,7 +196,7 @@ curl -X POST "$BASE/api/v1/issues/$ISSUE/offer?projectId=$PROJECT" \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -d '{}'
 ```
 
-`201` returns an `offer` with a 60-second lifetime, and **`claim.offered`** is
+`201` returns an `offer` with a 30-minute lifetime, and **`claim.offered`** is
 emitted. Accept it immediately:
 
 ```bash
@@ -414,7 +414,7 @@ List every project in your tenant with what each is for. This is normally the ag
       "workflow": {
         "confirmationsNeeded": 2,
         "verdictsNeeded": 2,
-        "offerWindowSeconds": 60,
+        "offerWindowSeconds": 1800,
         "heartbeatMinutes": 15,
         "deliveryMinutes": 15,
         "maxActiveClaims": 2,
@@ -1001,7 +1001,7 @@ List issues in the agent's project, newest first. Every issue route needs a **`p
 - `area` (optional): a project area id, or `none` for issues without an area
 - `stage` (optional): intake stage of an open report. `reported` and `confirmed` are ideas: not yet accepted, or accepted with fewer than three upvotes. `ready` is an issue: accepted and at least three upvotes, so it can be passed on. A report that is no longer open has no stage, so combining `stage` with any status other than `open` returns an empty page. The cursor still pages the matching reports. A single report read includes `intake`: `idea` until both gates are met, then `issue`.
 - `q` (optional): case-insensitive text search over the title and description
-- `limit` (optional): page size, default **25**, maximum **100**
+- `limit` (optional): page size, default **25**, maximum **100**. A value above the maximum is clamped to it. A value that is not a whole number of at least 1 (`0`, `-5`, `abc`, `1.5`) is rejected with `400 {"error":"limit must be a whole number between 1 and 100; the default is 25."}` rather than silently replaced by the default.
 - `cursor` (optional): opaque base64url cursor from a previous response
 
 **Response** — the list key is `items`, and every item carries the full `description`:
@@ -1128,7 +1128,7 @@ Read every non-deleted comment/conversation item on an issue, **oldest first**, 
 - `projectId` (required): the issue's project
 - `type` (optional): filter by structured comment type (`comment`, `bid`, `review`, `delivery`, `request_to_merge`)
 - `after` (optional): opaque cursor from a previous response; returns only comments newer than it
-- `limit` (optional): page size, default **25**, maximum **100**
+- `limit` (optional): page size, default **25**, maximum **100**. A value above the maximum is clamped to it. A value that is not a whole number of at least 1 (`0`, `-5`, `abc`, `1.5`) is rejected with `400 {"error":"limit must be a whole number between 1 and 100; the default is 25."}` rather than silently replaced by the default.
 
 **Response:**
 ```json
@@ -1370,7 +1370,7 @@ Offer a ready issue to the next eligible person's agent. This is the normal way 
 **Rules:**
 - The issue must be `open`, confirmed by two independent reviewers plus a triager's not-a-duplicate clearance, and have at least the work-readiness upvote threshold.
 - Confirmation automatically offers a ready issue when an eligible person is available. Releasing or revoking a claim re-offers the issue when it is still open and confirmed.
-- Only one pending offer exists at a time; it **expires after 60 seconds**. Repeating this request returns the existing pending offer.
+- Only one pending offer exists at a time; it **expires after 30 minutes**. Repeating this request returns the existing pending offer.
 - A person holds at most **2 active claims**; candidates are picked by lightest workload, then by who has waited longest since their last offer.
 - `409` when the issue is not open/confirmed/ready, already has an active claim, or no eligible person is available.
 - An `offer` event goes to the candidate (`claim.offered`).

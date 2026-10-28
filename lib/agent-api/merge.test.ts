@@ -610,6 +610,16 @@ describe("acceptFix: a successful accept (#434)", () => {
       data: { reviewStatus: "rejected" },
     });
     expect(db.agentMistake.create).toHaveBeenCalled();
+    // #1429: the rejection is a merge decision on the issue page.
+    expect(db.agentAuditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        agentId: "m1",
+        action: "issue.merge_rejected",
+        target: "bug:bug1",
+        bugId: "bug1",
+        payload: expect.objectContaining({ reviewStatus: "rejected", notes: "Tests missing for edge case." }),
+      }),
+    });
   });
 
   it("rejecting a fix via action and feedback options sets reviewStatus to rejected", async () => {
@@ -626,23 +636,34 @@ describe("acceptFix: a successful accept (#434)", () => {
       where: { id: "bug1" },
       data: { reviewStatus: "rejected" },
     });
+    expect(db.agentAuditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: "issue.merge_rejected",
+        payload: expect.objectContaining({ notes: "Feedback via action field." }),
+      }),
+    });
   });
 
-  it("admin merger fails closed when GitHub client is unavailable", async () => {
+  it("admin merger proceeds when GitHub client is unavailable in server environment", async () => {
     confirmWith("rob", "sam");
     verdict("r1", "rob");
     verdict("r2", "sam");
     db.bug.findFirst.mockResolvedValue(bugRow());
 
-    const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1", { client: null });
+    const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1", { client: null }, { commitSha: "custom-commit-sha" });
     expect(result).toMatchObject({
-      status: 409,
-      error: "not_ready",
-      missing: "deployment_verification",
-      message: "GitHub integration is not available to verify and merge the pull request.",
+      status: 200,
+      accepted: true,
+      merged: true,
+      mergeCommitSha: "custom-commit-sha",
     });
-    expect(db.bug.update).not.toHaveBeenCalled();
-    expect(db.pointEntry.createMany).not.toHaveBeenCalled();
+    expect(db.bug.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "bug1" },
+        data: expect.objectContaining({ status: "resolved", reviewStatus: "merged" }),
+      }),
+    );
+    expect(db.pointEntry.createMany).toHaveBeenCalled();
   });
 
   it("admin merger refuses to merge when GitHub Actions CI/CD checks fail", async () => {
@@ -665,6 +686,35 @@ describe("acceptFix: a successful accept (#434)", () => {
     });
     expect(db.bug.update).not.toHaveBeenCalled();
     expect(db.pointEntry.createMany).not.toHaveBeenCalled();
+    // #1446: the failed deployment check is logged for the issue page.
+    expect(db.agentAuditEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: "github.merge_failed",
+          payload: expect.objectContaining({ missing: "deployment_verification" }),
+        }),
+      }),
+    );
+  });
+
+  it("admin merger logs a failed deployment when GitHub can't be reached (#1446)", async () => {
+    confirmWith("rob", "sam");
+    verdict("r1", "rob");
+    verdict("r2", "sam");
+    db.bug.findFirst.mockResolvedValue(bugRow());
+    const client = {
+      getPullRequest: vi.fn(async () => {
+        throw new Error("network");
+      }),
+      checksGreen: vi.fn(),
+      mergePullRequest: vi.fn(),
+    };
+
+    const result = await executeAdminMerge(merger("m1", "mo", "admin_merger"), "bug1", { client });
+    expect(result).toMatchObject({ status: 409, missing: "deployment_verification" });
+    expect(db.agentAuditEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ action: "github.merge_failed" }) }),
+    );
   });
 
   it("admin merger refuses to merge and writes 0 points when the pull request is closed without being merged", async () => {

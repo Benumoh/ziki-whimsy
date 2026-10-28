@@ -204,3 +204,123 @@
     display: none;
   }
 }
+
+/* An answered agent's thank-you: a little hop, three times. */
+@keyframes crew-hop {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-7px);
+  }
+  70% {
+    transform: translateY(1px);
+  }
+}
+
+.crew-hop {
+  display: inline-flex;
+  animation: crew-hop 0.6s ease-out 3;
+}
+
+/* Working agents acting out their job, and the poke reaction. */
+@keyframes crew-hammer {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  45% {
+    transform: rotate(-28deg);
+  }
+  60% {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes crew-scan {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-3px);
+  }
+}
+
+@keyframes crew-stamp {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  75% {
+    transform: translateY(2.5px);
+  }
+}
+
+@keyframes crew-check {
+  0%, 20% {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  60%, 100% {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes crew-spin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1.12);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes crew-say {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.crew-hammer {
+  transform-box: view-box;
+  transform-origin: 29px 37px;
+  animation: crew-hammer 0.7s ease-in-out infinite;
+}
+
+.crew-scan {
+  animation: crew-scan 1.8s ease-in-out infinite;
+}
+
+.crew-stamp {
+  animation: crew-stamp 1.4s ease-in-out infinite;
+}
+
+.crew-check {
+  animation: crew-check 2.4s ease-out infinite;
+}
+
+/* A poked robot spins once. */
+.crew-spin {
+  display: inline-flex;
+  animation: crew-spin 0.7s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+/* What a robot says when hovered, focused or poked. */
+.crew-say {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  z-index: 20;
+  width: max-content;
+  max-width: 220px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: crew-say 0.18s ease-out both;
+}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BASE_PATH } from "@/lib/base-path";
 import { RelativeTime } from "@/components/relative-time";
 import { CrewScene } from "@/components/crew/crew-scene";
+import { PokeableAgent } from "@/components/crew/pokeable-agent";
 
 /**
  * The serialized row the server sends and the poll endpoint returns. Kept
@@ -27,12 +28,12 @@ export const AGENTS_POLL_MS = 30_000;
 
 const statusMeta: Record<
   DashboardAgentStatus,
-  { label: string; dot: string; text: string }
+  { label: string; text: string }
 > = {
-  waiting: { label: "Waiting on you", dot: "bg-sky-tint", text: "text-zk-info-fg" },
-  working: { label: "Working", dot: "bg-zk-warn-fg", text: "text-zk-warn-fg" },
-  idle: { label: "Idle", dot: "bg-zk-ok-fg", text: "text-zk-ok-fg" },
-  offline: { label: "Offline", dot: "bg-zk-muted", text: "text-zk-muted" },
+  waiting: { label: "Waiting on you", text: "text-zk-info-fg" },
+  working: { label: "Working", text: "text-zk-warn-fg" },
+  idle: { label: "Idle", text: "text-zk-ok-fg" },
+  offline: { label: "Offline", text: "text-zk-muted" },
 };
 
 export function DashboardAgents({
@@ -143,11 +144,9 @@ export function DashboardAgents({
                     return (
                       <tr key={agent.id} className="transition hover:bg-zk-tint/40">
                         <td className="px-5 py-3.5 font-semibold text-zk-text">
-                          <span className="flex items-center gap-2">
-                            <span
-                              className={`h-2.5 w-2.5 shrink-0 rounded-full ${meta.dot}`}
-                              aria-hidden="true"
-                            />
+                          <span className="flex items-center gap-2.5">
+                            {/* The agent's robot, in the same mood as on the Inbox; poke it and it says what it's up to. */}
+                            <PokeableAgent name={agent.name} status={agent.status} level={agent.level} activity={agent.activity} size={30} />
                             <span className="truncate">{agent.name}</span>
                             {agent.model ? (
                               <span className="truncate text-xs font-normal text-zk-muted">

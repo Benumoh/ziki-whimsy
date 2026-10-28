@@ -9,6 +9,7 @@ import {
   QuickResolveButtons,
   EscalationAnswerForm,
 } from "../escalation-controls";
+import { EscalationRobot } from "./escalation-robot";
 
 export const metadata = { title: "Resolve Agent Escalation" };
 
@@ -41,6 +42,8 @@ export default async function EscalationDetailPage({
           </div>
           <LocalTime date={question.createdAt} className="text-xs text-zk-muted" />
         </div>
+
+        <EscalationRobot name={question.agent.name} level={question.agent.level} answered={Boolean(question.answeredAt)} />
 
         <div className="space-y-1">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-zk-accent">
