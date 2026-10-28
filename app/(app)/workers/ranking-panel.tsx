@@ -24,7 +24,8 @@ import { databaseErrorReason } from "@/lib/db-error";
 import { workflowFor } from "@/lib/workflow";
 import { DEFAULT_PROJECT_WORKFLOW } from "@/lib/workflow-config";
 import { projectContextFor } from "@/lib/project-context";
-import { teamAgentsForMembers, teamMetricSince, type TeamAgent } from "@/lib/team-directory";
+import { teamAgentsForMembers, teamAssignedWorkForMembers, teamMetricSince, type TeamAgent, type TeamAgentWork } from "@/lib/team-directory";
+import { MemberAssignedWork } from "@/components/member-assigned-work";
 import { isTenantAdminRole } from "@/lib/agents/membership";
 import { settableLevels } from "@/lib/agents/levels";
 import { TeamAgentTable } from "./team-agent-table";
@@ -101,6 +102,8 @@ type RankedMember = {
   role: "Owner" | "Admin" | "Member";
   claims: number;
   agents: TeamAgent[];
+  /** #447: assigned to the member, not claimed by any of their agents. */
+  assignedWork: TeamAgentWork[];
 };
 
 function sortMembers(members: RankedMember[], sort: SortKey): RankedMember[] {
@@ -155,6 +158,7 @@ export default async function RankingPanel({
   let targetPoints: number;
   let members;
   let agentsMap;
+  let assignedMap: Map<string, TeamAgentWork[]>;
   let recentPoints;
   let activeClaims;
   let maxActiveClaims: number;
@@ -191,6 +195,8 @@ export default async function RankingPanel({
         _count: { _all: true },
       }),
     ]);
+    // #447: assigned issues no agent has claimed, shown once per member.
+    assignedMap = await teamAssignedWorkForMembers(prisma, tenantId, agentsMap);
     maxActiveClaims = activeProjectId
       ? (await workflowFor(activeProjectId)).maxActiveClaims
       : DEFAULT_PROJECT_WORKFLOW.maxActiveClaims;
@@ -238,6 +244,7 @@ export default async function RankingPanel({
       role: role === "owner" ? "Owner" : role === "admin" ? "Admin" : "Member",
       claims: claimsById.get(member.id) ?? 0,
       agents: agentsMap.get(member.id) ?? [],
+      assignedWork: assignedMap.get(member.id) ?? [],
     };
   });
 
@@ -540,6 +547,7 @@ export default async function RankingPanel({
                       last={i === rows.length - 1}
                     >
                       <TeamAgentTable agents={row.agents} manageLevels={manageLevels} memberName={row.name} />
+                      <MemberAssignedWork work={row.assignedWork} className="mt-3" />
                     </RankingRow>
                   );
                 })}

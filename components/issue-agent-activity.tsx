@@ -40,8 +40,40 @@ export type AgentDecision =
       /** #606: the agent's owner, while the claim is paused on their answer. */
       waitingOnName?: string | null;
     }
+  | {
+      id: string;
+      at: Date | string;
+      /** #1446: a claim that was released or taken back. */
+      kind: "claim_released";
+      agentName: string;
+      personName: string;
+    }
   | { id: string; at: Date | string; kind: "verdict"; agentName: string; personName: string; goodToMerge: boolean }
-  | { id: string; at: Date | string; kind: "accepted"; agentName: string };
+  | {
+      id: string;
+      at: Date | string;
+      kind: "accepted";
+      agentName: string;
+      /** #1446: the admin merger merged and deployed it, not just accepted it. */
+      merged?: boolean;
+    }
+  | {
+      id: string;
+      at: Date | string;
+      /** #1446: the admin merger's deployment checks or merge failed. */
+      kind: "deploy_failed";
+      agentName: string;
+      reason: string | null;
+    }
+  | {
+      id: string;
+      at: Date | string;
+      /** #1429: a merger sent the fix back. Never an accept. */
+      kind: "merge_rejected";
+      agentName: string;
+      /** What the merger asked to change. */
+      notes: string | null;
+    };
 
 export function timeOf(decision: AgentDecision): number {
   return new Date(decision.at).getTime();
@@ -87,16 +119,34 @@ export function verdictVisual(decision: AgentDecision): VerdictVisual {
           };
     case "accepted":
       return {
-        label: "Good to merge",
+        label: decision.merged ? "Deployed" : "Good to merge",
         chip: "bg-zk-ok-bg text-zk-ok-fg",
         iconWrap: "bg-zk-ok-bg text-zk-ok-fg",
+      };
+    case "merge_rejected":
+      return {
+        label: "Not ready to merge",
+        chip: "bg-zk-warn-bg text-zk-warn-fg",
+        iconWrap: "bg-zk-warn-bg text-zk-warn-fg",
+      };
+    case "claim_released":
+      return {
+        label: "Claim released",
+        chip: "bg-zk-bad-bg text-zk-bad-fg",
+        iconWrap: "bg-zk-bad-bg text-zk-bad-fg",
+      };
+    case "deploy_failed":
+      return {
+        label: "Deployment failed",
+        chip: "bg-zk-bad-bg text-zk-bad-fg",
+        iconWrap: "bg-zk-bad-bg text-zk-bad-fg",
       };
   }
 }
 
 export function VerdictGlyph({ kind, goodToMerge }: { kind: AgentDecision["kind"]; goodToMerge?: boolean }) {
   const common = "h-[15px] w-[15px]";
-  if (kind === "rejected") {
+  if (kind === "rejected" || kind === "claim_released") {
     return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={common} aria-hidden>
         <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
@@ -110,7 +160,7 @@ export function VerdictGlyph({ kind, goodToMerge }: { kind: AgentDecision["kind"
       </svg>
     );
   }
-  if (kind === "verdict" && !goodToMerge) {
+  if ((kind === "verdict" && !goodToMerge) || kind === "merge_rejected" || kind === "deploy_failed") {
     return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={common} aria-hidden>
         <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
@@ -134,7 +184,7 @@ export function VerdictGlyph({ kind, goodToMerge }: { kind: AgentDecision["kind"
   );
 }
 
-function sentence(decision: AgentDecision) {
+export function decisionSentence(decision: AgentDecision) {
   switch (decision.kind) {
     case "confirmed":
       return (
@@ -184,10 +234,35 @@ function sentence(decision: AgentDecision) {
         </>
       );
     case "accepted":
-      return (
+      return decision.merged ? (
+        <>
+          <strong className="font-bold text-zk-text">{decision.agentName}</strong> merged and deployed the fix.
+        </>
+      ) : (
         <>
           <strong className="font-bold text-zk-text">{decision.agentName}</strong> accepted the fix and marked this
           issue resolved.
+        </>
+      );
+    case "claim_released":
+      return (
+        <>
+          The claim by <strong className="font-bold text-zk-text">{decision.agentName}</strong> for{" "}
+          {decision.personName} was released.
+        </>
+      );
+    case "deploy_failed":
+      return (
+        <>
+          <strong className="font-bold text-zk-text">{decision.agentName}</strong> couldn&apos;t deploy the fix
+          {decision.reason ? <>: {decision.reason}</> : "."}
+        </>
+      );
+    case "merge_rejected":
+      return (
+        <>
+          <strong className="font-bold text-zk-text">{decision.agentName}</strong> rejected the fix and asked for
+          changes before it can merge.
         </>
       );
   }
@@ -246,8 +321,8 @@ export function IssueAgentActivity({
                   </span>
                   <LocalTime compact className="text-xs text-zk-muted" date={decision.at} />
                 </div>
-                <p className="mt-1.5 text-sm leading-snug text-zk-text2">{sentence(decision)}</p>
-                {decision.kind === "rejected" && decision.notes ? (
+                <p className="mt-1.5 text-sm leading-snug text-zk-text2">{decisionSentence(decision)}</p>
+                {(decision.kind === "rejected" || decision.kind === "merge_rejected") && decision.notes ? (
                   <ExpandableText maxLines={3} expandText="View more" collapseText="View less">
                     <blockquote className="mt-1.5 whitespace-pre-wrap break-words rounded-r-[10px] border-l-[3px] border-zk-border bg-zk-chip px-3.5 py-2.5 text-[13px] leading-relaxed text-zk-text2">
                       {decision.notes}
