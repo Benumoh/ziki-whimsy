@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth-helpers";
 import { currentTenantIdFor } from "@/lib/tenant-context";
-import { ownerQuestion, parseEscalationBody } from "@/lib/agent-questions";
+import { ownerAgentHistory, ownerQuestion, parseEscalationBody } from "@/lib/agent-questions";
+import { escalationTelemetry } from "@/components/crew/incident/commander-logic";
+import { IncidentCommander } from "@/components/crew/incident/incident-commander";
 import { LocalTime } from "@/components/local-time";
 import {
   EscalationTypeBadge,
@@ -27,6 +29,10 @@ export default async function EscalationDetailPage({
 
   const parsed = parseEscalationBody(question.body);
   const escalationType = parsed.type;
+  // The incident commander's look back; without it, it simply has no history to report.
+  const history = question.answeredAt
+    ? []
+    : await ownerAgentHistory(user.id, question.agent.id, question.id).catch(() => []);
 
   return (
     <article className="mx-auto max-w-2xl space-y-6">
@@ -53,6 +59,17 @@ export default async function EscalationDetailPage({
             {parsed.cleanBody}
           </p>
         </div>
+
+        {question.answeredAt ? null : (
+          <IncidentCommander
+            escalationId={question.id}
+            agent={question.agent.name}
+            kind={escalationType}
+            body={parsed.cleanBody}
+            issue={question.bug ? { number: question.bug.number, title: question.bug.title } : null}
+            telemetry={escalationTelemetry(history)}
+          />
+        )}
 
         {question.bug ? (
           <div className="rounded-[12px] border border-zk-border bg-zk-tint p-3 text-xs">

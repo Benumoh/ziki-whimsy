@@ -51,7 +51,7 @@ describe("PokeableAgent", () => {
 describe("EscalationRobot", () => {
   it("waits until you answer, then thanks you right away", async () => {
     const { rerender } = render(<EscalationRobot name="Rex" level="contributor" answered={false} />);
-    expect(screen.getByText("Waiting for your call…")).toBeInTheDocument();
+    expect(screen.getByText("Not waiting around: I've drafted the fix below.")).toBeInTheDocument();
     rerender(<EscalationRobot name="Rex" level="contributor" answered />);
     await waitFor(() => expect(screen.getByText("Thanks! Back to it.")).toBeInTheDocument());
     expect(document.querySelector("svg[data-mood]")).toHaveAttribute("data-mood", "working");
