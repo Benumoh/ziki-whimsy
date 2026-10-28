@@ -1,0 +1,61 @@
+/*
+ * Protocol Midnight Canvas: specimens are born, sway, toggle and glow; the
+ * generator works; the critic gestures. All of it holds still under reduced
+ * motion (the rule at the end), where the canvas is a single still scene.
+ */
+@keyframes mc-born {
+  from { opacity: 0; transform: scale(0.2) rotate(-20deg); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes mc-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+@keyframes mc-flip {
+  0%, 45% { transform: translateX(-6px); }
+  55%, 100% { transform: translateX(6px); }
+}
+@keyframes mc-slide {
+  0%, 100% { transform: translateX(-16px); }
+  50% { transform: translateX(16px); }
+}
+@keyframes mc-glow {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.35); }
+}
+@keyframes mc-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes mc-twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.9; }
+}
+@keyframes mc-work {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-2px) rotate(-3deg); }
+  60% { transform: translateY(0) rotate(2deg); }
+}
+@keyframes mc-spark {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--mc-dx), var(--mc-dy)) scale(0.3); }
+}
+
+/* Specimens glide toward the cursor (their transform is set inline). */
+.mc-drift { transition: transform 1.4s cubic-bezier(0.3, 0.7, 0.2, 1); }
+.mc-born { transform-box: fill-box; transform-origin: center; animation: mc-born 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.3) both; }
+.mc-sway { transform-box: fill-box; transform-origin: 50% 100%; animation: mc-sway 3.2s ease-in-out infinite; }
+.mc-flip { animation: mc-flip 2.6s ease-in-out infinite; }
+.mc-slide { animation: mc-slide 3.4s ease-in-out infinite; }
+.mc-glow { transform-box: fill-box; transform-origin: center; animation: mc-glow 2.4s ease-in-out infinite; }
+.mc-spin { transform-box: fill-box; transform-origin: center; animation: mc-spin 6s linear infinite; }
+.mc-twinkle { animation: mc-twinkle 3.6s ease-in-out infinite; }
+.mc-work { transform-box: fill-box; transform-origin: 50% 100%; animation: mc-work 0.9s ease-in-out infinite; }
+.mc-spark { animation: mc-spark 0.9s ease-out forwards; }
+.mc-paused * { animation-play-state: paused !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="mc-"] {
+    animation: none !important;
+    transition: none !important;
+  }
+}

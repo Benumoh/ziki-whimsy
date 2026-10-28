@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import "./team.css";
-import { CrewScene } from "@/components/crew/crew-scene";
+import { MidnightCanvas } from "@/components/crew/midnight/midnight-canvas";
 import { requireUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { currentTenantIdFor } from "@/lib/tenant-context";
@@ -144,7 +144,9 @@ export default async function RankingPanel({
   if (!tenantId) {
     return (
       <section className="team-empty">
-        <CrewScene scene="knocking" width={200} className="mx-auto mb-2" />
+        <div className="mb-3 text-left">
+          <MidnightCanvas theme="workspace" />
+        </div>
         <h2>No workspace yet</h2>
         <p>Join or create a workspace to see its ranking and team.</p>
         <Link href="/tenants" className="team-primary">Create or join a workspace</Link>

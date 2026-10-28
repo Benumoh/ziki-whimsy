@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth-helpers";
 import { LocalTime } from "@/components/local-time";
 import { MarkAllReadButton } from "@/components/mark-all-read-button";
 import { BASE_PATH } from "@/lib/base-path";
-import { CrewScene } from "@/components/crew/crew-scene";
+import { MidnightCanvas } from "@/components/crew/midnight/midnight-canvas";
 
 export const metadata = { title: "Notifications" };
 
@@ -73,7 +73,9 @@ export default async function NotificationsPage({
 
       {notifications.length === 0 ? (
         <div className="rounded-[20px] border border-dashed border-zk-border bg-zk-surface p-6 text-sm text-zk-muted">
-          <CrewScene scene="napping" width={170} className="mb-3" />
+          <div className="mb-4">
+            <MidnightCanvas theme="notifications" />
+          </div>
           <p className="font-semibold text-zk-text">No notifications yet</p>
           <p className="mt-1">
             New comments, mentions, assignments and status changes on issues

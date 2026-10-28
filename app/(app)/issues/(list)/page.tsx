@@ -11,7 +11,8 @@ import { requireUser } from "@/lib/auth-helpers";
 import { InboxButton } from "@/components/inbox-button";
 import { MergeIcon } from "@/components/merge-path";
 import { InboxAgents } from "@/components/inbox-agents";
-import { CrewScene } from "@/components/crew/crew-scene";
+import { MidnightCanvas } from "@/components/crew/midnight/midnight-canvas";
+import type { CanvasThemeId } from "@/components/crew/midnight/canvas-logic";
 import { loadOwnAgents, type DashboardAgent } from "@/lib/dashboard-overview";
 import { agentWorkDone, describeWorkDone, type AgentWorkDone } from "@/lib/agent-work";
 import type { AppRole } from "@/lib/roles";
@@ -114,6 +115,13 @@ const INBOX_TABS: { view: InboxView; label: string }[] = [
   { view: "ideas", label: "New ideas" },
   { view: "drafts", label: "Drafted ideas" },
 ];
+/** Each empty Inbox list's own canvas: what grows there and what the critic says. */
+const INBOX_THEMES: Record<InboxView, CanvasThemeId> = {
+  input: "inbox",
+  design: "design",
+  ideas: "ideas",
+  drafts: "drafts",
+};
 const DESIGN_WHERE = { some: { status: "proposed" } } satisfies Prisma.RedesignProposalListRelationFilter;
 const AGENT_ORDER = { waiting: 0, working: 1, idle: 2, offline: 3 } as const;
 
@@ -1035,7 +1043,13 @@ export default async function BugsPage({
           <FirstRunWelcome isAdmin={canDelete} hasTenant={Boolean(tenantId)} />
         ) : bugs.length === 0 ? (
           <div className="rounded-[20px] border border-zk-border bg-zk-surface px-4 py-12 text-center">
-            <CrewScene scene={inboxView ? "lounging" : "searching"} width={180} className="mx-auto mb-4" />
+            {/* Every empty list: the crew's Midnight Canvas, until something real arrives. */}
+            <div className="mb-5">
+              <MidnightCanvas
+                theme={inboxView ? INBOX_THEMES[inboxView] : "filters"}
+                codeState={{ open: countForStatus("open"), waitingOnYou: inboxCounts.input, ideas: inboxCounts.ideas }}
+              />
+            </div>
             <p className="font-bold text-zk-text">
               {inboxView
                 ? "Nothing here right now."
@@ -1286,7 +1300,9 @@ function FirstRunWelcome({
   if (!hasTenant) {
     return (
       <section aria-labelledby="issues-workspace-heading" className="issues-workspace-empty rounded-[20px] border border-zk-border bg-zk-bg px-6 py-10 text-center sm:px-8">
-        <CrewScene scene="knocking" width={200} className="mx-auto mb-4" />
+        <div className="mb-5">
+          <MidnightCanvas theme="workspace" />
+        </div>
         <h2 id="issues-workspace-heading" className="text-xl font-bold leading-7 text-zk-text">No workspace yet</h2>
         <p className="mx-auto mt-3 max-w-lg text-base leading-7 text-zk-text2">
           You are not currently a member of any workspace. Join a workspace via an invite from your team,
@@ -1306,7 +1322,9 @@ function FirstRunWelcome({
 
   return (
     <section className="rounded-[20px] border border-zk-border bg-zk-surface px-5 py-8 text-center">
-      <CrewScene scene="fishing" width={200} className="mx-auto mb-3" />
+      <div className="mb-4">
+        <MidnightCanvas theme="project" />
+      </div>
       <h2 className="text-lg font-bold text-zk-text">No issues yet</h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-zk-muted">
         This is where reported issues will appear. A good report says what you
